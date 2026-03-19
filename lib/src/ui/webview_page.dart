@@ -47,8 +47,58 @@ class _WebViewPageState extends State<WebViewPage> {
             onPageStarted: (String url) {
               setState(() => _isLoading = true);
             },
-            onPageFinished: (String url) {
-              setState(() => _isLoading = false);
+            onProgress: (int progress) {
+              // keep loading indicator while progress < 100
+              if (progress < 100) {
+                setState(() => _isLoading = true);
+              }
+            },
+            onPageFinished: (String url) async {
+              // Basic finished event may fire before meaningful render.
+              // Probe page state using JS to detect empty/blank content.
+              try {
+                final ready = await _mobileController!.runJavaScriptReturningResult('document.readyState');
+                final bodyLen = await _mobileController!.runJavaScriptReturningResult('document.body ? document.body.innerText.length : 0');
+                // runJavaScriptReturningResult may return a quoted string, normalize it
+                String readyStr = ready.toString();
+                readyStr = readyStr.replaceAll('"', '');
+                final len = int.tryParse(bodyLen.toString().replaceAll('"', '')) ?? 0;
+                debugPrint('WebView finished: ready=$readyStr bodyLen=$len url=$url');
+                if (len == 0 || readyStr != 'complete') {
+                  // keep showing loading state briefly and attempt a secondary check
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  Future.delayed(const Duration(milliseconds: 300), () async {
+                    try {
+                      final len2 = int.tryParse((await _mobileController!.runJavaScriptReturningResult('document.body ? document.body.innerText.length : 0')).toString().replaceAll('"', '')) ?? 0;
+                      debugPrint('WebView second check bodyLen=$len2');
+                      if (mounted) {
+                        setState(() => _isLoading = len2 == 0);
+                      }
+                    } catch (_) {
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
+                    }
+                  });
+                } else {
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                  }
+                }
+              } catch (e) {
+                  debugPrint('Error probing webview JS: $e');
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                  }
+                }
+            },
+            onWebResourceError: (err) {
+              debugPrint('WebView resource error: ${err.description}');
+              if (mounted) {
+                setState(() => _isLoading = false);
+              }
             },
           ),
         )
@@ -78,9 +128,42 @@ class _WebViewPageState extends State<WebViewPage> {
         if (state == win_wv.LoadingState.loading) {
           setState(() => _isLoading = true);
         } else if (state == win_wv.LoadingState.navigationCompleted) {
-          setState(() {
-            _isLoading = false;
-            _winReady = true;
+          // navigationCompleted may not guarantee meaningful paint; probe DOM
+          Future.microtask(() async {
+              try {
+                // Try to query document.readyState and body length via ExecuteScript
+                final ready = await _winController!.executeScript('document.readyState');
+                final bodyLenRaw = await _winController!.executeScript('document.body ? document.body.innerText.length : 0');
+                String readyStr = ready.toString().replaceAll('"', '');
+                final len = int.tryParse((bodyLenRaw ?? '0').toString().replaceAll('"', '')) ?? 0;
+              debugPrint('WinWebView navigationCompleted ready=$readyStr bodyLen=$len');
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                  _winReady = len > 0 && readyStr == 'complete';
+                });
+              }
+              // If still blank, schedule a re-check and optionally reinit
+              if (len == 0) {
+                Future.delayed(const Duration(milliseconds: 400), () async {
+                  try {
+                    final len2 = int.tryParse((await _winController!.executeScript('document.body ? document.body.innerText.length : 0')).toString().replaceAll('"', '')) ?? 0;
+                    debugPrint('WinWebView delayed check bodyLen=$len2');
+                    if (mounted && len2 > 0) {
+                      setState(() => _winReady = true);
+                    }
+                  } catch (_) {}
+                });
+              }
+            } catch (e) {
+              debugPrint('Error executing script on Win WebView: $e');
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                  _winReady = true; // fallback to true to show view; user can reload if blank
+                });
+              }
+            }
           });
         }
       });
@@ -295,9 +378,9 @@ class _WebViewPageState extends State<WebViewPage> {
                 if (_winError)
                   Positioned.fill(
                     child: Container(
-                          color: Colors.black.withAlpha(
-                            ((0.45).clamp(0.0, 1.0) * 255).round(),
-                          ),
+                      color: Colors.black.withAlpha(
+                        ((0.45).clamp(0.0, 1.0) * 255).round(),
+                      ),
                       child: Center(
                         child: Material(
                           color: colorScheme.surface,
@@ -360,7 +443,9 @@ class _WebViewPageState extends State<WebViewPage> {
                 ? const SizedBox()
                 : WebViewWidget(controller: _mobileController!),
           ),
-          _isLoading ? const Center(child: CircularProgressIndicator()) : const SizedBox.shrink(),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : const SizedBox.shrink(),
           // 顶部操作栏
           buildWebViewActions(
             onBack: () async {
