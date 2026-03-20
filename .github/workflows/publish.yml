@@ -1,0 +1,89 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip
+
+      - name: Compute release metadata
+        id: vars
+        run: |
+          now=$(date -u +%y%m%d)
+          short=$(git rev-parse --short=6 HEAD)
+          base="$now-$short"
+          tag="picoclaw_fui-$base"
+          echo "RELEASE_BASE=$base" >> $GITHUB_ENV
+          echo "RELEASE_TAG=$tag" >> $GITHUB_ENV
+          echo "Computed $tag"
+
+      - name: Download artifacts from repo artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          repo="$GITHUB_REPOSITORY"
+          base="${RELEASE_BASE}"
+          files=("picoclaw_fui-${base}-android-arm_arm64.aab" "picoclaw_fui-${base}-android-universal.apk" "picoclaw_fui-${base}-windows-x64.zip")
+          mkdir -p downloaded
+          for f in "${files[@]}"; do
+            echo "Searching for artifact named: $f"
+            page=1
+            found_id=""
+            while [ -z "$found_id" ]; do
+              resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/actions/artifacts?per_page=100&page=$page")
+              id=$(echo "$resp" | jq -r --arg name "$f" '.artifacts[] | select(.name==$name) | .id' | head -n1)
+              if [ -n "$id" ]; then
+                found_id="$id"
+                break
+              fi
+              total=$(echo "$resp" | jq -r '.artifacts | length')
+              if [ "$total" -lt 100 ]; then
+                break
+              fi
+              page=$((page+1))
+            done
+            if [ -z "$found_id" ]; then
+              echo "Artifact $f not found in repo artifacts. Exiting."
+              exit 1
+            fi
+            echo "Downloading artifact id $found_id"
+            curl -s -L -H "Authorization: token $GITHUB_TOKEN" -o /tmp/artifact_$found_id.zip "https://api.github.com/repos/$repo/actions/artifacts/$found_id/zip"
+            unzip -o /tmp/artifact_$found_id.zip -d downloaded
+            found_path=$(find downloaded -type f -name "$f" | head -n1)
+            if [ -z "$found_path" ]; then
+              echo "Expected file $f not found inside artifact archive"
+              exit 1
+            fi
+            mv "$found_path" "./$f"
+            rm -f /tmp/artifact_$found_id.zip
+            rm -rf downloaded/*
+          done
+
+      - name: Publish Release and upload artifacts
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
+          allowUpdates: true
+          artifacts: |
+            picoclaw_fui-${{ env.RELEASE_BASE }}-android-arm_arm64.aab
+            picoclaw_fui-${{ env.RELEASE_BASE }}-android-universal.apk
+            picoclaw_fui-${{ env.RELEASE_BASE }}-windows-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

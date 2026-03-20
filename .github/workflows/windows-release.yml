@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build-windows:
@@ -76,23 +78,8 @@ jobs:
           $dest = "picoclaw_fui-${env:RELEASE_BASE}-windows-x64.zip"
           Compress-Archive -Path 'build\\windows\\x64\\runner\\Release\\*' -DestinationPath $dest -Force
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Upload Windows ZIP artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.vars.outputs.release_tag }}
-          release_name: ${{ steps.vars.outputs.release_tag }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: picoclaw_fui-${{ env.RELEASE_BASE }}-windows-x64.zip
-          asset_name: picoclaw_fui-${{ env.RELEASE_BASE }}-windows-x64.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: picoclaw_fui-${{ env.RELEASE_BASE }}-windows-x64.zip
+          path: picoclaw_fui-${{ env.RELEASE_BASE }}-windows-x64.zip
