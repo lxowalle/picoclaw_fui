@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
+import 'picoclaw_channel.dart';
 
 enum ServiceStatus { stopped, running, starting }
 
@@ -38,6 +39,20 @@ class ServiceManager extends ChangeNotifier {
   String _binaryPath = '';
   String _arguments = '';
 
+  // Android 原生服务状态
+  int _nativePid = -1;
+  String _healthStatus = '';
+  String _healthUptime = '';
+  bool _autoStart = false;
+
+  int get nativePid => _nativePid;
+  String get healthStatus => _healthStatus;
+  String get healthUptime => _healthUptime;
+  bool get autoStart => _autoStart;
+
+  // Android 状态轮询定时器
+  Timer? _androidPollingTimer;
+
   // Theme state
   AppThemeMode _currentThemeMode = AppThemeMode.carbon;
   AppThemeMode get currentThemeMode => _currentThemeMode;
@@ -57,7 +72,77 @@ class ServiceManager extends ChangeNotifier {
     final themeIndex = prefs.getInt('theme_mode') ?? 0;
     _currentThemeMode = AppThemeMode.values[themeIndex];
 
+    // Android: 初始化时同步原生服务状态
+    if (Platform.isAndroid) {
+      _port = 18800; // Android 使用 Web Console 端口
+      _host = '127.0.0.1';
+      try {
+        _autoStart = await PicoClawChannel.getAutoStart();
+        await _syncAndroidServiceStatus();
+      } catch (_) {}
+      _startAndroidPolling();
+    }
+
     notifyListeners();
+  }
+
+  /// Android: 同步原生服务状态
+  Future<void> _syncAndroidServiceStatus() async {
+    try {
+      final status = await PicoClawChannel.getServiceStatus();
+      final isRunning = status['isRunning'] as bool? ?? false;
+      final lastLog = status['lastLog'] as String? ?? '';
+      _nativePid = status['pid'] as int? ?? -1;
+
+      final oldStatus = _status;
+      _status = isRunning ? ServiceStatus.running : ServiceStatus.stopped;
+
+      if (lastLog.isNotEmpty) {
+        _addLog(lastLog);
+      }
+
+      // 如果服务正在运行，检查健康状态
+      if (isRunning) {
+        try {
+          final health = await PicoClawChannel.checkHealth();
+          final isHealthy = health['isHealthy'] as bool? ?? false;
+          _healthStatus = isHealthy ? 'Healthy' : 'Starting...';
+          _healthUptime = health['uptime'] as String? ?? '';
+          if (health['pid'] != null && (health['pid'] as int) > 0) {
+            _nativePid = health['pid'] as int;
+          }
+        } catch (_) {
+          _healthStatus = 'Starting...';
+        }
+      } else {
+        _healthStatus = '';
+        _healthUptime = '';
+      }
+
+      if (oldStatus != _status) {
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Failed to sync Android service status: $e');
+    }
+  }
+
+  /// Android: 启动状态轮询
+  void _startAndroidPolling() {
+    _androidPollingTimer?.cancel();
+    _androidPollingTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _syncAndroidServiceStatus(),
+    );
+  }
+
+  /// Android: 设置开机自启
+  Future<void> setAutoStart(bool enabled) async {
+    if (Platform.isAndroid) {
+      await PicoClawChannel.setAutoStart(enabled);
+      _autoStart = enabled;
+      notifyListeners();
+    }
   }
 
   Future<void> setTheme(AppThemeMode mode) async {
@@ -119,10 +204,27 @@ class ServiceManager extends ChangeNotifier {
     _status = ServiceStatus.starting;
     notifyListeners();
 
+    // Android: 通过 MethodChannel 启动原生前台服务
+    if (Platform.isAndroid) {
+      try {
+        await PicoClawChannel.startService();
+        _addLog('Starting PicoClaw native service...');
+        // 延迟同步状态，等待服务启动
+        Future.delayed(const Duration(seconds: 2), () {
+          _syncAndroidServiceStatus();
+        });
+      } catch (e) {
+        _status = ServiceStatus.stopped;
+        _addLog('Failed to start native service: $e');
+        notifyListeners();
+      }
+      return;
+    }
+
+    // 桌面平台：保持原有的 Process.start 逻辑
     try {
       // 1. Cleanup existing process/port conflicts
       if (Platform.isWindows) {
-        // Find and kill process by port on Windows
         try {
           final result = await Process.run('cmd', [
             '/c',
@@ -142,10 +244,7 @@ class ServiceManager extends ChangeNotifier {
             }
           }
         } catch (_) {}
-      } else if (Platform.isAndroid || Platform.isLinux) {
-        // On Android/Linux, we can't easily kill by port without root/shell.
-        // However, we can try to kill by name if possible, or just re-try.
-        // For Android, we primarily rely on the foreground service keeping our lifecycle synced.
+      } else if (Platform.isLinux) {
         await stop();
       }
 
@@ -170,8 +269,6 @@ class ServiceManager extends ChangeNotifier {
       _status = ServiceStatus.running;
       _addLog('Service started on $webUrl');
 
-      // Use LineSplitter to efficiently handle line breaks and avoid UI blocking
-      // with large output blocks.
       _process!.stdout
           .transform(utf8.decoder)
           .transform(const LineSplitter())
@@ -200,10 +297,30 @@ class ServiceManager extends ChangeNotifier {
   }
 
   Future<void> stop() async {
+    // Android: 通过 MethodChannel 停止原生服务
+    if (Platform.isAndroid) {
+      try {
+        await PicoClawChannel.stopService();
+        _status = ServiceStatus.stopped;
+        _addLog('Stopping PicoClaw native service...');
+        notifyListeners();
+      } catch (e) {
+        _addLog('Failed to stop native service: $e');
+      }
+      return;
+    }
+
+    // 桌面平台
     if (_process != null) {
       _process!.kill();
       _status = ServiceStatus.stopped;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _androidPollingTimer?.cancel();
+    super.dispose();
   }
 }

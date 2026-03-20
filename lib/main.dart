@@ -9,6 +9,7 @@ import 'package:picoclaw_flutter_ui/src/core/app_theme.dart';
 import 'package:picoclaw_flutter_ui/src/ui/dashboard_page.dart';
 import 'package:picoclaw_flutter_ui/src/ui/config_page.dart';
 import 'package:picoclaw_flutter_ui/src/ui/webview_page.dart';
+import 'package:picoclaw_flutter_ui/src/ui/chat_page.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
@@ -30,20 +31,22 @@ void main(List<String> args) async {
     );
   }
 
-  // Initialize Window Manager
-  await windowManager.ensureInitialized();
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1024, 768),
-    minimumSize: Size(850, 650),
-    center: true,
-    skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.normal,
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-    await windowManager.setPreventClose(true);
-  });
+  // Initialize Window Manager (desktop platforms only)
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      size: Size(1024, 768),
+      minimumSize: Size(850, 650),
+      center: true,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+      await windowManager.setPreventClose(true);
+    });
+  }
 
   if (Platform.isAndroid) {
     await initializeBackgroundService();

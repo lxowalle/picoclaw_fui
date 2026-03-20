@@ -99,19 +99,22 @@ class DashboardPage extends StatelessWidget {
                                         : colorScheme.secondary,
                                   ),
                                   const SizedBox(width: 20),
-                                  Text(
-                                    service.status == ServiceStatus.running
-                                        ? 'STOP SERVICE'
-                                        : 'LAUNCH SERVICE',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1.5,
-                                      color:
-                                          service.status ==
-                                              ServiceStatus.running
-                                          ? colorScheme.error
-                                          : colorScheme.secondary,
+                                  Flexible(
+                                    child: Text(
+                                      service.status == ServiceStatus.running
+                                          ? 'STOP SERVICE'
+                                          : 'LAUNCH SERVICE',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1.5,
+                                        color:
+                                            service.status ==
+                                                ServiceStatus.running
+                                            ? colorScheme.error
+                                            : colorScheme.secondary,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -166,15 +169,18 @@ class DashboardPage extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(
-                                    'ENDPOINT',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.5,
-                                      color: colorScheme.onSurface.withAlpha(
-                                        ((0.5).clamp(0.0, 1.0) * 255).round(),
+                                  Flexible(
+                                    child: Text(
+                                      'ENDPOINT',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.5,
+                                        color: colorScheme.onSurface.withAlpha(
+                                          ((0.5).clamp(0.0, 1.0) * 255).round(),
+                                        ),
                                       ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -323,7 +329,7 @@ class DashboardPage extends StatelessWidget {
         break;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withAlpha(((0.08).clamp(0.0, 1.0) * 255).round()),
         borderRadius: BorderRadius.circular(6),
@@ -352,7 +358,7 @@ class DashboardPage extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 6),
           Text(
             label,
             style: GoogleFonts.inter(

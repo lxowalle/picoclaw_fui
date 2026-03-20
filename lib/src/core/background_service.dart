@@ -3,16 +3,13 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 
+/// 初始化 Flutter 后台服务。
+/// 在 Android 上，主要的 Go 二进制由原生 PicoClawService 前台服务管理，
+/// 此处的 flutter_background_service 仅作为辅助保活机制。
 Future<void> initializeBackgroundService() async {
   final service = FlutterBackgroundService();
 
-  // Notification channel/plug-in initialization intentionally omitted
-  // since background service plugins may manage notifications differently
-  // across platform/API versions. Keep this minimal to avoid unused-symbol
-  // analyzer warnings and version-specific API calls.
-  // For Android, create a notification channel so the foreground service
-  // can post persistent notifications. This is required for newer Android
-  // API levels and provides a consistent cross-platform experience.
+  // 创建通知渠道（Android 需要）
   try {
     if (defaultTargetPlatform == TargetPlatform.android) {
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -32,16 +29,16 @@ Future<void> initializeBackgroundService() async {
           ?.createNotificationChannel(channel);
     }
   } catch (e) {
-    // Don't fail service initialization for notification errors; log if possible.
+    // 通知初始化失败不影响服务启动
   }
 
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
-      autoStart: true,
+      autoStart: false, // 不自动启动，由原生服务管理
       isForegroundMode: true,
       notificationChannelId: 'picoclaw_foreground',
-      initialNotificationTitle: 'PicoClaw UI',
+      initialNotificationTitle: 'PicoClaw',
       initialNotificationContent: 'PicoClaw service is running',
       foregroundServiceNotificationId: 888,
     ),
@@ -60,8 +57,6 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  // Logic to keep Go binary alive in separate thread/isolate if needed
-  // For now we just keep the service active
   if (service is AndroidServiceInstance) {
     service.on('setAsForeground').listen((event) {
       service.setAsForegroundService();
