@@ -170,13 +170,19 @@ class ServiceManager extends ChangeNotifier {
   }) async {
     _host = host;
     _port = port;
-    if (binaryPath != null) _binaryPath = binaryPath;
+    // On Windows and Android prefer the built-in `app/bin` layout and do not
+    // accept a custom binary path from callers.
+    if (!(Platform.isWindows || Platform.isAndroid)) {
+      if (binaryPath != null) _binaryPath = binaryPath;
+    }
     if (arguments != null) _arguments = arguments;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('host', host);
     await prefs.setInt('port', port);
-    if (binaryPath != null) await prefs.setString('binaryPath', binaryPath);
+    if (!(Platform.isWindows || Platform.isAndroid)) {
+      if (binaryPath != null) await prefs.setString('binaryPath', binaryPath);
+    }
     if (arguments != null) await prefs.setString('arguments', arguments);
     notifyListeners();
   }

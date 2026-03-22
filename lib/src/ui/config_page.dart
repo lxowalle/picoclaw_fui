@@ -103,75 +103,82 @@ class _ConfigPageState extends State<ConfigPage> {
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _pathController,
-                  decoration: InputDecoration(labelText: l10n.binaryPath),
+          // On Windows and Android we use the built-in app/bin path by default
+          // and do not expose or accept a custom program path.
+          if (!Platform.isWindows && !Platform.isAndroid)
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _pathController,
+                    decoration: InputDecoration(labelText: l10n.binaryPath),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                children: [
-                  Builder(
-                    builder: (ctx) {
-                      final cs = Theme.of(ctx).colorScheme;
-                      return ElevatedButton.icon(
-                        onPressed: _pickFile,
-                        icon: const Icon(Icons.folder_open),
-                        label: Text(l10n.browse),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: cs.primary,
-                          foregroundColor: cs.onPrimary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 14,
+                const SizedBox(width: 8),
+                Column(
+                  children: [
+                    Builder(
+                      builder: (ctx) {
+                        final cs = Theme.of(ctx).colorScheme;
+                        return ElevatedButton.icon(
+                          onPressed: _pickFile,
+                          icon: const Icon(Icons.folder_open),
+                          label: Text(l10n.browse),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 2,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 2,
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Builder(
-                    builder: (ctx) {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final local = AppLocalizations.of(context)!;
-                      return OutlinedButton(
-                        onPressed: () async {
-                          final code = await service.validateBinary(
-                            _pathController.text,
-                          );
-                          String msg;
-                          if (code) {
-                            msg = local.coreValid;
-                          } else {
-                            final ec = service.lastErrorCode;
-                            if (ec == 'core.binary_missing') {
-                              msg = local.coreBinaryMissing;
-                            } else if (ec == 'core.invalid_binary') {
-                              msg = local.coreInvalidBinary;
-                            } else if (ec == 'core.start_failed') {
-                              msg = local.coreStartFailed;
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (ctx) {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final local = AppLocalizations.of(context)!;
+                        return OutlinedButton(
+                          onPressed: () async {
+                            final code = await service.validateBinary(
+                              _pathController.text,
+                            );
+                            String msg;
+                            if (code) {
+                              msg = local.coreValid;
                             } else {
-                              msg = local.coreUnknownError(ec ?? '');
+                              final ec = service.lastErrorCode;
+                              if (ec == 'core.binary_missing') {
+                                msg = local.coreBinaryMissing;
+                              } else if (ec == 'core.invalid_binary') {
+                                msg = local.coreInvalidBinary;
+                              } else if (ec == 'core.start_failed') {
+                                msg = local.coreStartFailed;
+                              } else {
+                                msg = local.coreUnknownError(ec ?? '');
+                              }
                             }
-                          }
 
-                          messenger.showSnackBar(SnackBar(content: Text(msg)));
-                        },
-                        child: Text('Check'),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(msg)),
+                            );
+                          },
+                          child: Text('Check'),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else
+            const SizedBox.shrink(),
           const SizedBox(height: 16),
           TextField(
             controller: _argsController,
@@ -191,10 +198,18 @@ class _ConfigPageState extends State<ConfigPage> {
                     final messenger = ScaffoldMessenger.of(context);
                     final savedL10n = AppLocalizations.of(context)!;
 
+                    // On Windows and Android we intentionally do not pass a
+                    // custom binary path so the app will use the default
+                    // `app/bin` layout installed by CI/tools.
+                    final String? binaryArg =
+                        (Platform.isWindows || Platform.isAndroid)
+                        ? null
+                        : _pathController.text;
+
                     await service.updateConfig(
                       _hostController.text,
                       port,
-                      binaryPath: _pathController.text,
+                      binaryPath: binaryArg,
                       arguments: _argsController.text,
                     );
 
