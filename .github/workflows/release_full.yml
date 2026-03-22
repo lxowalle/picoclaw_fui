@@ -59,7 +59,7 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: (no-op) placeholder for core fetch moved to build steps
+      
 
       - name: Accept Android SDK licenses
         run: |
