@@ -46,4 +46,43 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get save => '保存';
+
+  @override
+  String get themeSelection => '主题选择';
+
+  @override
+  String get check => '检查';
+
+  @override
+  String get browse => '浏览';
+
+  @override
+  String get binaryPath => '程序路径';
+
+  @override
+  String get arguments => '参数';
+
+  @override
+  String get argumentsHint => '附加参数';
+
+  @override
+  String get publicMode => '公共模式';
+
+  @override
+  String get publicModeHintDesc => '允许其他设备访问';
+
+  @override
+  String get coreValid => '核心程序有效';
+
+  @override
+  String get coreBinaryMissing => '核心程序未找到';
+
+  @override
+  String get coreInvalidBinary => '核心程序无效';
+
+  @override
+  String get coreStartFailed => '启动核心服务失败';
+
+  @override
+  String coreUnknownError(String code) => '未知错误: $code';
 }

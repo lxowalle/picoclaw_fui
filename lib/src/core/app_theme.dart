@@ -16,33 +16,33 @@ class AppTheme {
     switch (mode) {
       case AppThemeMode.carbon:
         return _buildTheme(
-          primary: const Color(0xFF111111), // Pure Dark
-          primaryContainer: const Color(0xFF1A1A1A), // Elevated Neutral
-          secondary: const Color(0xFF00E5FF), // Neon Cyan
+          primary: const Color(0xFF1C1C1E), // Carbon Gray - 冷调深灰
+          primaryContainer: const Color(0xFF2C2C2E), // 较亮的中灰
+          secondary: const Color(0xFF00D4FF), // 电光蓝
         );
       case AppThemeMode.slate:
         return _buildTheme(
-          primary: const Color(0xFF020617), // Slate 950
-          primaryContainer: const Color(0xFF0F172A), // Slate 900
-          secondary: const Color(0xFFF59E0B), // Amber 500
+          primary: const Color(0xFF0F172A), // Slate 900 - 深蓝灰
+          primaryContainer: const Color(0xFF1E293B), // Slate 800
+          secondary: const Color(0xFFF59E0B), // 琥珀金
         );
       case AppThemeMode.obsidian:
         return _buildTheme(
-          primary: const Color(0xFF000000), // OLED Black
-          primaryContainer: const Color(0xFF111111), //
-          secondary: const Color(0xFFFFFFFF), // Pure White
+          primary: const Color(0xFF000000), // 纯黑 OLED
+          primaryContainer: const Color(0xFF1A1A1A), // 深灰
+          secondary: const Color(0xFFFF3366), // 霓虹洋红
         );
       case AppThemeMode.ebony:
         return _buildTheme(
-          primary: const Color(0xFF0C0C0C), // Warm Deep Ebony
-          primaryContainer: const Color(0xFF1A1A1A),
-          secondary: const Color(0xFFFACC15), // Gold/Yellow
+          primary: const Color(0xFF1A120B), // 暖深棕
+          primaryContainer: const Color(0xFF3C2A21), // 暖棕
+          secondary: const Color(0xFFFFD700), // 亮金
         );
       case AppThemeMode.nord:
         return _buildTheme(
           primary: const Color(0xFF2E3440), // Nord Polar Night
-          primaryContainer: const Color(0xFF3B4252),
-          secondary: const Color(0xFF88C0D0), // Frost Blue
+          primaryContainer: const Color(0xFF4C566A), // 更亮的北极灰
+          secondary: const Color(0xFF81A1C1), // Nord Frost Blue
         );
       case AppThemeMode.sakura:
         return _buildTheme(
@@ -52,9 +52,7 @@ class AppTheme {
           primaryContainer: const Color(
             0xFFFDF2F8,
           ), // Rose 50 (Main Content - Low glare, high clarity)
-          secondary: const Color(
-            0xFFC2185B,
-          ), // Pink 700 (Primary Action/Highlight)
+          secondary: const Color.fromARGB(255, 252, 90, 154),
           isDark: false,
         );
     }

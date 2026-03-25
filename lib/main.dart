@@ -15,6 +15,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'dart:io';
 import 'package:picoclaw_flutter_ui/src/ui/widgets/adaptive_action_bar.dart';
+import 'package:picoclaw_flutter_ui/src/ui/widgets/tv_focusable.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -187,37 +188,33 @@ class _MainShellState extends State<MainShell>
 
     // Build actions that mirror previous NavigationRail / NavigationBar
     final actions = <Widget>[
-      IconButton(
+      _buildNavButton(
+        index: 0,
         tooltip: 'Status',
-        icon: Icon(
-          _selectedIndex == 0 ? Icons.dashboard : Icons.dashboard_outlined,
-          color: _selectedIndex == 0 ? colorScheme.secondary : null,
-        ),
-        onPressed: () => setState(() => _selectedIndex = 0),
+        icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard,
+        colorScheme: colorScheme,
       ),
-      IconButton(
+      _buildNavButton(
+        index: 1,
         tooltip: 'Web',
-        icon: Icon(
-          Icons.language,
-          color: _selectedIndex == 1 ? colorScheme.secondary : null,
-        ),
-        onPressed: () => setState(() => _selectedIndex = 1),
+        icon: Icons.language_outlined,
+        selectedIcon: Icons.language,
+        colorScheme: colorScheme,
       ),
-      IconButton(
+      _buildNavButton(
+        index: 2,
         tooltip: 'Logs',
-        icon: Icon(
-          _selectedIndex == 2 ? Icons.article : Icons.article_outlined,
-          color: _selectedIndex == 2 ? colorScheme.secondary : null,
-        ),
-        onPressed: () => setState(() => _selectedIndex = 2),
+        icon: Icons.article_outlined,
+        selectedIcon: Icons.article,
+        colorScheme: colorScheme,
       ),
-      IconButton(
+      _buildNavButton(
+        index: 3,
         tooltip: 'Settings',
-        icon: Icon(
-          Icons.settings,
-          color: _selectedIndex == 3 ? colorScheme.secondary : null,
-        ),
-        onPressed: () => setState(() => _selectedIndex = 3),
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+        colorScheme: colorScheme,
       ),
     ];
 
@@ -249,6 +246,56 @@ class _MainShellState extends State<MainShell>
           ),
         ),
         actions: actions,
+      ),
+    );
+  }
+
+  /// Build navigation button with clear focus and selected state indicators
+  Widget _buildNavButton({
+    required int index,
+    required String tooltip,
+    required IconData icon,
+    required IconData selectedIcon,
+    required ColorScheme colorScheme,
+  }) {
+    final isSelected = _selectedIndex == index;
+    final iconSize = isSelected ? 26.0 : 24.0;
+
+    // 使用与导航栏背景色(primary)形成高对比的颜色
+    // 选中时使用 primaryContainer（通常是浅色）作为背景，与导航栏深色形成强对比
+    // 未选中时使用 onSurface（通常是浅色文字）
+    final selectedBgColor = colorScheme.surface;
+    final selectedIconColor = colorScheme.secondary;
+    final unselectedIconColor = colorScheme.onSurface.withAlpha(179);
+
+    return TVFocusable(
+      autofocus: index == 0,
+      onTap: () => setState(() => _selectedIndex = index),
+      borderRadius: BorderRadius.circular(30),
+      focusBorderWidth: 2.5,
+      focusBorderColor: colorScheme.secondary,
+      focusBackgroundColor: colorScheme.secondary.withAlpha(31),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: isSelected ? selectedBgColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(51),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Icon(
+          isSelected ? selectedIcon : icon,
+          color: isSelected ? selectedIconColor : unselectedIconColor,
+          size: iconSize,
+        ),
       ),
     );
   }

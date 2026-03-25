@@ -130,8 +130,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                 Flexible(
                                   child: Text(
                                     service.status == ServiceStatus.running
-                                        ? 'STOP SERVICE'
-                                        : 'LAUNCH SERVICE',
+                                        ? l10n.stopService
+                                        : l10n.launchService,
                                     style: GoogleFonts.inter(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w900,
@@ -198,7 +198,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   const SizedBox(width: 12),
                                   Flexible(
                                     child: Text(
-                                      'ENDPOINT',
+                                      l10n.endpoint,
                                       style: GoogleFonts.inter(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
@@ -215,27 +215,24 @@ class _DashboardPageState extends State<DashboardPage> {
                               const SizedBox(height: 16),
                               // 公共模式状态指示器
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     service.publicMode
                                         ? Icons.public
                                         : Icons.lock_outline,
-                                    size: 14,
-                                    color: service.publicMode
-                                        ? colorScheme.primary
-                                        : colorScheme.outline,
+                                    size: 16,
+                                    color: colorScheme.secondary,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    service.publicMode ? '公共模式已开启' : '本地模式',
+                                    service.publicMode
+                                        ? l10n.publicModeEnabled
+                                        : l10n.localMode,
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: service.publicMode
-                                          ? colorScheme.primary
-                                          : colorScheme.outline,
-                                      fontWeight: service.publicMode
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
+                                      fontSize: 13,
+                                      color: colorScheme.secondary,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
@@ -275,7 +272,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  '无法获取设备IP',
+                                                  l10n.unableToGetDeviceIp,
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: colorScheme.error,
@@ -370,6 +367,43 @@ class _DashboardPageState extends State<DashboardPage> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 32),
+                // Hint at bottom center
+                Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondary.withAlpha(0),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.lightbulb_outline,
+                          size: 20,
+                          color: colorScheme.secondary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          service.publicMode
+                              ? l10n.publicModeHint
+                              : l10n.localModeHint,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurface.withAlpha(
+                              ((0.7).clamp(0.0, 1.0) * 255).round(),
+                            ),
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 100),
               ]),
             ),
@@ -381,22 +415,23 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildStatusIndicator(BuildContext context, ServiceStatus status) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     Color color;
     String label;
     switch (status) {
       case ServiceStatus.running:
         color = const Color(0xFF10B981); // Modern Emerald
-        label = 'ACTIVE';
+        label = l10n.statusActive;
         break;
       case ServiceStatus.starting:
         color = const Color(0xFFF59E0B); // Modern Amber
-        label = 'SYNCING';
+        label = l10n.statusSyncing;
         break;
       case ServiceStatus.stopped:
         color = colorScheme.onSurface.withAlpha(
           ((0.3).clamp(0.0, 1.0) * 255).round(),
         );
-        label = 'IDLE';
+        label = l10n.statusIdle;
         break;
     }
     return Container(

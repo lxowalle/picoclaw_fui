@@ -296,10 +296,88 @@ abstract class AppLocalizations {
   /// **'Public Mode'**
   String get publicMode;
 
-  /// No description provided for @publicModeHint.
+  /// No description provided for @publicModeHintDesc.
   ///
   /// In en, this message translates to:
   /// **'When enabled, the service allows external access and the address field will be disabled'**
+  String get publicModeHintDesc;
+
+  /// No description provided for @themeSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get themeSelection;
+
+  /// No description provided for @check.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get check;
+
+  /// No description provided for @launchService.
+  ///
+  /// In en, this message translates to:
+  /// **'LAUNCH SERVICE'**
+  String get launchService;
+
+  /// No description provided for @stopService.
+  ///
+  /// In en, this message translates to:
+  /// **'STOP SERVICE'**
+  String get stopService;
+
+  /// No description provided for @endpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'ENDPOINT'**
+  String get endpoint;
+
+  /// No description provided for @statusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVE'**
+  String get statusActive;
+
+  /// No description provided for @statusSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'SYNCING'**
+  String get statusSyncing;
+
+  /// No description provided for @statusIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'IDLE'**
+  String get statusIdle;
+
+  /// No description provided for @publicModeEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Public Mode Enabled'**
+  String get publicModeEnabled;
+
+  /// No description provided for @localMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Mode'**
+  String get localMode;
+
+  /// No description provided for @unableToGetDeviceIp.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to get device IP'**
+  String get unableToGetDeviceIp;
+
+  /// No description provided for @localModeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Go to Service Config\n2. Turn on Public Mode\n3. Restart the service\n4. Scan QR code to access PicoClaw'**
+  String get localModeHint;
+
+  /// No description provided for @publicModeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Start the service\n2. Scan QR code to access PicoClaw'**
   String get publicModeHint;
 }
 

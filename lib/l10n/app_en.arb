@@ -38,7 +38,20 @@
   "coreUnknownError": "Unknown core error: {code}",
   "coreValid": "Core binary is valid.",
   "publicMode": "Public Mode",
-  "publicModeHint": "When enabled, the service allows external access and the address field will be disabled",
+  "publicModeHintDesc": "When enabled, the service allows external access and the address field will be disabled",
+  "themeSelection": "Theme",
+  "check": "Check",
+  "launchService": "LAUNCH SERVICE",
+  "stopService": "STOP SERVICE",
+  "endpoint": "ENDPOINT",
+  "statusActive": "ACTIVE",
+  "statusSyncing": "SYNCING",
+  "statusIdle": "IDLE",
+  "publicModeEnabled": "Public Mode Enabled",
+  "localMode": "Local Mode",
+  "unableToGetDeviceIp": "Unable to get device IP",
+  "localModeHint": "1. Go to Service Config\n2. Turn on Public Mode\n3. Restart the service\n4. Scan QR code to access PicoClaw",
+  "publicModeHint": "1. Start the service\n2. Scan QR code to access PicoClaw",
   "@coreUnknownError": {
     "placeholders": {
       "code": {}

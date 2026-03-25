@@ -42,7 +42,11 @@ class _ConfigPageState extends State<ConfigPage> {
   void initState() {
     super.initState();
     final service = context.read<ServiceManager>();
-    _hostController.text = service.webUrl.split('://').last.split(':').first;
+    // 从实际配置获取地址和端口
+    // 如果publicMode为true，host显示0.0.0.0
+    _hostController.text = service.publicMode
+        ? '0.0.0.0'
+        : service.webUrl.replaceAll('http://', '').split(':').first;
     _portController.text = service.webUrl.split(':').last;
     _pathController.text = service.binaryPath;
     _argsController.text = service.arguments;
@@ -72,7 +76,34 @@ class _ConfigPageState extends State<ConfigPage> {
         return;
       }
 
-      jsonDecode(configStr) as Map<String, dynamic>;
+      final config = jsonDecode(configStr) as Map<String, dynamic>;
+
+      // 从config.json读取gateway配置并更新UI
+      final gateway = config['gateway'] as Map<String, dynamic>?;
+      if (gateway != null && mounted) {
+        final service = context.read<ServiceManager>();
+        final port = gateway['port'] as int?;
+
+        // 如果publicMode为true，显示0.0.0.0，否则显示config.json中的host
+        if (service.publicMode) {
+          setState(() {
+            _hostController.text = '0.0.0.0';
+          });
+        } else {
+          final host = gateway['host'] as String?;
+          if (host != null && host.isNotEmpty) {
+            setState(() {
+              _hostController.text = host;
+            });
+          }
+        }
+
+        if (port != null && port > 0) {
+          setState(() {
+            _portController.text = port.toString();
+          });
+        }
+      }
     } catch (e) {
       // Ignore config loading errors
     }
@@ -166,128 +197,36 @@ class _ConfigPageState extends State<ConfigPage> {
             const SizedBox(height: 16),
 
             // Public mode switch with focus - using button style for TV remote support
-            StatefulBuilder(
-              builder: (context, setLocalState) {
-                bool isFocused = false;
-                return Focus(
-                  focusNode: _publicModeFocusNode,
-                  onFocusChange: (focused) {
-                    setLocalState(() => isFocused = focused);
-                  },
-                  child: GestureDetector(
-                    onTap: _togglePublicModeFromFocus,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isFocused
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.secondary.withAlpha(20)
-                            : null,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isFocused
-                              ? Theme.of(context).colorScheme.secondary
-                              : Theme.of(context).dividerColor,
-                          width: isFocused ? 2 : 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            service.publicMode
-                                ? Icons.public
-                                : Icons.public_off,
-                            color: service.publicMode
-                                ? Theme.of(context).colorScheme.secondary
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withAlpha(150),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.publicMode,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        color: isFocused
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.secondary
-                                            : null,
-                                      ),
-                                ),
-                                Text(
-                                  l10n.publicModeHint,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: 48,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              color: service.publicMode
-                                  ? Theme.of(context).colorScheme.secondary
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                            ),
-                            child: AnimatedAlign(
-                              duration: const Duration(milliseconds: 200),
-                              alignment: service.publicMode
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                margin: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Theme.of(context).colorScheme.surface,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withAlpha(30),
-                                      blurRadius: 2,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
+            PublicModeToggle(
+              focusNode: _publicModeFocusNode,
+              isPublicMode: service.publicMode,
+              onToggle: _togglePublicModeFromFocus,
+              onArrowDown: () => _hostFocusNode.requestFocus(),
+              onArrowUp: () => _githubFocusNode.requestFocus(),
             ),
             const SizedBox(height: 16),
 
             // Host text field
-            TextField(
+            FocusableTextField(
               controller: _hostController,
               focusNode: _hostFocusNode,
-              decoration: InputDecoration(labelText: l10n.address),
+              label: l10n.address,
               enabled: !service.publicMode,
+              nextFocusNode: _portFocusNode,
+              prevFocusNode: _publicModeFocusNode,
             ),
             const SizedBox(height: 16),
 
             // Port text field
-            TextField(
+            FocusableTextField(
               controller: _portController,
               focusNode: _portFocusNode,
-              decoration: InputDecoration(labelText: l10n.port),
+              label: l10n.port,
               keyboardType: TextInputType.number,
+              nextFocusNode: (!Platform.isWindows && !Platform.isAndroid)
+                  ? _pathFocusNode
+                  : _argsFocusNode,
+              prevFocusNode: _hostFocusNode,
             ),
             const SizedBox(height: 16),
 
@@ -295,73 +234,113 @@ class _ConfigPageState extends State<ConfigPage> {
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
+                    child: FocusableTextField(
                       controller: _pathController,
                       focusNode: _pathFocusNode,
-                      decoration: InputDecoration(labelText: l10n.binaryPath),
+                      label: l10n.binaryPath,
+                      nextFocusNode: _browseFocusNode,
+                      prevFocusNode: _portFocusNode,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Column(
-                    children: [
-                      Builder(
-                        builder: (ctx) {
-                          final cs = Theme.of(ctx).colorScheme;
-                          return ElevatedButton.icon(
-                            focusNode: _browseFocusNode,
-                            onPressed: _pickFile,
-                            icon: const Icon(Icons.folder_open),
-                            label: Text(l10n.browse),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: cs.primary,
-                              foregroundColor: cs.onPrimary,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 14,
+                  SizedBox(
+                    width: 100,
+                    child: Column(
+                      children: [
+                        Builder(
+                          builder: (ctx) {
+                            final cs = Theme.of(ctx).colorScheme;
+                            return FocusableButton(
+                              focusNode: _browseFocusNode,
+                              onPressed: _pickFile,
+                              nextFocusNode: _checkFocusNode,
+                              prevFocusNode: _pathFocusNode,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: cs.primary,
+                                foregroundColor: cs.onPrimary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                minimumSize: const Size(100, 48),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 2,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.folder_open, size: 20),
+                                  const SizedBox(width: 4),
+                                  Text(l10n.browse),
+                                ],
                               ),
-                              elevation: 2,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      Builder(
-                        builder: (ctx) {
-                          final messenger = ScaffoldMessenger.of(context);
-                          final local = AppLocalizations.of(context)!;
-                          return OutlinedButton(
-                            focusNode: _checkFocusNode,
-                            onPressed: () async {
-                              final code = await service.validateBinary(
-                                _pathController.text,
-                              );
-                              String msg;
-                              if (code) {
-                                msg = local.coreValid;
-                              } else {
-                                final ec = service.lastErrorCode;
-                                if (ec == 'core.binary_missing') {
-                                  msg = local.coreBinaryMissing;
-                                } else if (ec == 'core.invalid_binary') {
-                                  msg = local.coreInvalidBinary;
-                                } else if (ec == 'core.start_failed') {
-                                  msg = local.coreStartFailed;
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Builder(
+                          builder: (ctx) {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final local = AppLocalizations.of(context)!;
+                            final cs = Theme.of(ctx).colorScheme;
+                            return FocusableButton(
+                              focusNode: _checkFocusNode,
+                              onPressed: () async {
+                                final code = await service.validateBinary(
+                                  _pathController.text,
+                                );
+                                String msg;
+                                if (code) {
+                                  msg = local.coreValid;
                                 } else {
-                                  msg = local.coreUnknownError(ec ?? '');
+                                  final ec = service.lastErrorCode;
+                                  if (ec == 'core.binary_missing') {
+                                    msg = local.coreBinaryMissing;
+                                  } else if (ec == 'core.invalid_binary') {
+                                    msg = local.coreInvalidBinary;
+                                  } else if (ec == 'core.start_failed') {
+                                    msg = local.coreStartFailed;
+                                  } else {
+                                    msg = local.coreUnknownError(ec ?? '');
+                                  }
                                 }
-                              }
-                              messenger.showSnackBar(
-                                SnackBar(content: Text(msg)),
-                              );
-                            },
-                            child: Text('Check'),
-                          );
-                        },
-                      ),
-                    ],
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(msg)),
+                                );
+                              },
+                              nextFocusNode: _argsFocusNode,
+                              prevFocusNode: _browseFocusNode,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: cs.secondary,
+                                foregroundColor: cs.onSecondary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                minimumSize: const Size(100, 48),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 2,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_outline,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(local.check),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               )
@@ -370,13 +349,15 @@ class _ConfigPageState extends State<ConfigPage> {
             const SizedBox(height: 16),
 
             // Arguments text field
-            TextField(
+            FocusableTextField(
               controller: _argsController,
               focusNode: _argsFocusNode,
-              decoration: InputDecoration(
-                labelText: l10n.arguments,
-                hintText: l10n.argumentsHint,
-              ),
+              label: l10n.arguments,
+              hint: l10n.argumentsHint,
+              nextFocusNode: _saveFocusNode,
+              prevFocusNode: (!Platform.isWindows && !Platform.isAndroid)
+                  ? _checkFocusNode
+                  : _portFocusNode,
             ),
             const SizedBox(height: 24),
 
@@ -384,7 +365,7 @@ class _ConfigPageState extends State<ConfigPage> {
             Builder(
               builder: (ctx) {
                 final cs = Theme.of(ctx).colorScheme;
-                return ElevatedButton(
+                return FocusableButton(
                   focusNode: _saveFocusNode,
                   onPressed: () async {
                     final port = int.tryParse(_portController.text);
@@ -426,6 +407,10 @@ class _ConfigPageState extends State<ConfigPage> {
                       }
                     }
                   },
+                  nextFocusNode: _themeFocusNodes.isNotEmpty
+                      ? _themeFocusNodes.first
+                      : _saveFocusNode,
+                  prevFocusNode: _argsFocusNode,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: cs.secondary,
                     foregroundColor: cs.onSecondary,
@@ -448,80 +433,564 @@ class _ConfigPageState extends State<ConfigPage> {
             const Divider(),
             const SizedBox(height: 16),
             Text(
-              'Theme Selection',
+              l10n.themeSelection,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: AppThemeMode.values.asMap().entries.map((entry) {
-                final index = entry.key;
-                final mode = entry.value;
-                final isSelected = service.currentThemeMode == mode;
-                final theme = AppTheme.getTheme(mode);
-                return GestureDetector(
-                  onTap: () => service.setTheme(mode),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? theme.colorScheme.secondary
-                            : theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected
-                              ? theme.colorScheme.secondary
-                              : Colors.transparent,
-                          width: 2,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: theme.colorScheme.secondary.withAlpha(
-                                    ((0.3).clamp(0.0, 1.0) * 255).round(),
-                                  ),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                ),
-                              ]
-                            : [],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.palette_outlined,
-                            size: 18,
-                            color: isSelected
-                                ? theme.colorScheme.onSecondary
-                                : theme.colorScheme.onPrimaryContainer,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            mode.name.toUpperCase(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? theme.colorScheme.onSecondary
-                                  : theme.colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+            FocusTraversalGroup(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: AppThemeMode.values.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final mode = entry.value;
+                  final isSelected = service.currentThemeMode == mode;
+                  final theme = AppTheme.getTheme(mode);
+                  final focusNode = _themeFocusNodes[index];
+
+                  return ThemeButton(
+                    focusNode: focusNode,
+                    mode: mode,
+                    theme: theme,
+                    isSelected: isSelected,
+                    onSelect: () => service.setTheme(mode),
+                    onArrowRight: () {
+                      if (index < _themeFocusNodes.length - 1) {
+                        _themeFocusNodes[index + 1].requestFocus();
+                      } else {
+                        _themeFocusNodes[0].requestFocus();
+                      }
+                    },
+                    onArrowLeft: () {
+                      if (index > 0) {
+                        _themeFocusNodes[index - 1].requestFocus();
+                      } else {
+                        _themeFocusNodes[_themeFocusNodes.length - 1]
+                            .requestFocus();
+                      }
+                    },
+                    onArrowUp: () => _saveFocusNode.requestFocus(),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 32),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Focusable widgets with shadow effects
+
+class FocusableTextField extends StatefulWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String label;
+  final String? hint;
+  final TextInputType? keyboardType;
+  final bool enabled;
+  final FocusNode nextFocusNode;
+  final FocusNode prevFocusNode;
+
+  const FocusableTextField({
+    super.key,
+    required this.controller,
+    required this.focusNode,
+    required this.label,
+    this.hint,
+    this.keyboardType,
+    this.enabled = true,
+    required this.nextFocusNode,
+    required this.prevFocusNode,
+  });
+
+  @override
+  State<FocusableTextField> createState() => _FocusableTextFieldState();
+}
+
+class _FocusableTextFieldState extends State<FocusableTextField> {
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted && _isFocused != widget.focusNode.hasFocus) {
+      setState(() {
+        _isFocused = widget.focusNode.hasFocus;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isFocused
+              ? colorScheme.secondary
+              : colorScheme.outline.withAlpha(60),
+          width: _isFocused ? 2 : 1,
+        ),
+      ),
+      child: Focus(
+        focusNode: widget.focusNode,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              widget.nextFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              widget.prevFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: TextField(
+          controller: widget.controller,
+          decoration: InputDecoration(
+            labelText: widget.label,
+            hintText: widget.hint,
+            floatingLabelBehavior: FloatingLabelBehavior.never,
+            filled: true,
+            fillColor: _isFocused
+                ? colorScheme.primaryContainer.withAlpha(40)
+                : colorScheme.surface,
+
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: colorScheme.outline.withOpacity(0.5),
+                width: 0,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colorScheme.primary, width: 0),
+            ),
+          ),
+          keyboardType: widget.keyboardType,
+          enabled: widget.enabled,
+          onEditingComplete: () {
+            widget.nextFocusNode.requestFocus();
+          },
+          textInputAction: TextInputAction.next,
+        ),
+      ),
+    );
+  }
+}
+
+class FocusableButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  final FocusNode focusNode;
+  final Widget child;
+  final ButtonStyle? style;
+  final FocusNode nextFocusNode;
+  final FocusNode prevFocusNode;
+
+  const FocusableButton({
+    super.key,
+    required this.onPressed,
+    required this.focusNode,
+    required this.child,
+    this.style,
+    required this.nextFocusNode,
+    required this.prevFocusNode,
+  });
+
+  @override
+  State<FocusableButton> createState() => _FocusableButtonState();
+}
+
+class _FocusableButtonState extends State<FocusableButton> {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Focus(
+      focusNode: widget.focusNode,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            widget.nextFocusNode.requestFocus();
+            return KeyEventResult.handled;
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            widget.prevFocusNode.requestFocus();
+            return KeyEventResult.handled;
+          } else if (event.logicalKey == LogicalKeyboardKey.select ||
+              event.logicalKey == LogicalKeyboardKey.enter) {
+            widget.onPressed();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Builder(
+        builder: (context) {
+          final isFocused = Focus.of(context).hasFocus;
+          return AnimatedScale(
+            scale: isFocused ? 1.05 : 1.0,
+            duration: const Duration(milliseconds: 150),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: isFocused
+                    ? [
+                        BoxShadow(
+                          color: colorScheme.primary.withValues(alpha: 0),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : [],
+              ),
+              child: ElevatedButton(
+                onPressed: widget.onPressed,
+                style: widget.style?.copyWith(
+                  side: WidgetStateProperty.all(
+                    isFocused
+                        ? BorderSide(color: colorScheme.primary, width: 3)
+                        : BorderSide.none,
+                  ),
+                ),
+                child: widget.child,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Public mode toggle widget with proper focus handling
+class PublicModeToggle extends StatefulWidget {
+  final FocusNode focusNode;
+  final bool isPublicMode;
+  final VoidCallback onToggle;
+  final VoidCallback onArrowDown;
+  final VoidCallback onArrowUp;
+
+  const PublicModeToggle({
+    super.key,
+    required this.focusNode,
+    required this.isPublicMode,
+    required this.onToggle,
+    required this.onArrowDown,
+    required this.onArrowUp,
+  });
+
+  @override
+  State<PublicModeToggle> createState() => _PublicModeToggleState();
+}
+
+class _PublicModeToggleState extends State<PublicModeToggle> {
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted) {
+      setState(() {
+        _isFocused = widget.focusNode.hasFocus;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Focus(
+      focusNode: widget.focusNode,
+      canRequestFocus: true,
+      descendantsAreFocusable: false,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            widget.onArrowDown();
+            return KeyEventResult.handled;
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            widget.onArrowUp();
+            return KeyEventResult.handled;
+          } else if (event.logicalKey == LogicalKeyboardKey.select ||
+              event.logicalKey == LogicalKeyboardKey.enter) {
+            widget.onToggle();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onToggle,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: _isFocused
+                ? Theme.of(context).colorScheme.secondary.withAlpha(40)
+                : (widget.isPublicMode
+                      ? Theme.of(context).colorScheme.secondary.withAlpha(15)
+                      : null),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _isFocused
+                  ? Theme.of(context).colorScheme.secondary
+                  : (widget.isPublicMode
+                        ? Theme.of(context).colorScheme.secondary
+                        : Theme.of(context).dividerColor),
+              width: _isFocused ? 2 : (widget.isPublicMode ? 2 : 1),
+            ),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.secondary.withAlpha(40),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (widget.isPublicMode || _isFocused)
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.secondary.withAlpha(40)
+                      : null,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  widget.isPublicMode ? Icons.public : Icons.public_off,
+                  color: widget.isPublicMode || _isFocused
+                      ? Theme.of(context).colorScheme.secondary
+                      : Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.publicMode,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: _isFocused
+                            ? Theme.of(context).colorScheme.secondary
+                            : (widget.isPublicMode
+                                  ? Theme.of(context).colorScheme.secondary
+                                  : null),
+                        fontWeight: (_isFocused || widget.isPublicMode)
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    Text(
+                      l10n.publicModeHintDesc,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 48,
+                height: 28,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: widget.isPublicMode
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    margin: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Theme.of(context).colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(30),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Theme button widget with proper focus handling
+class ThemeButton extends StatefulWidget {
+  final FocusNode focusNode;
+  final AppThemeMode mode;
+  final ThemeData theme;
+  final bool isSelected;
+  final VoidCallback onSelect;
+  final VoidCallback onArrowRight;
+  final VoidCallback onArrowLeft;
+  final VoidCallback onArrowUp;
+
+  const ThemeButton({
+    super.key,
+    required this.focusNode,
+    required this.mode,
+    required this.theme,
+    required this.isSelected,
+    required this.onSelect,
+    required this.onArrowRight,
+    required this.onArrowLeft,
+    required this.onArrowUp,
+  });
+
+  @override
+  State<ThemeButton> createState() => _ThemeButtonState();
+}
+
+class _ThemeButtonState extends State<ThemeButton> {
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted) {
+      setState(() {
+        _isFocused = widget.focusNode.hasFocus;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: widget.focusNode,
+      canRequestFocus: true,
+      descendantsAreFocusable: false,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            widget.onArrowRight();
+            return KeyEventResult.handled;
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            widget.onArrowLeft();
+            return KeyEventResult.handled;
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            widget.onArrowUp();
+            return KeyEventResult.handled;
+          } else if (event.logicalKey == LogicalKeyboardKey.select ||
+              event.logicalKey == LogicalKeyboardKey.enter) {
+            widget.onSelect();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onSelect,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: widget.isSelected
+                  ? widget.theme.colorScheme.secondary
+                  : widget.theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.black.withAlpha(0),
+                width: _isFocused ? 6 : 2,
+              ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.palette_outlined,
+                  size: 18,
+                  color: widget.isSelected
+                      ? widget.theme.colorScheme.onSecondary
+                      : widget.theme.colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.mode.name.toUpperCase(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: widget.isSelected
+                        ? widget.theme.colorScheme.onSecondary
+                        : widget.theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

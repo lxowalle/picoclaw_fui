@@ -35,7 +35,20 @@
   "coreUnknownError": "未知的核心错误：{code}",
   "coreValid": "核心二进制文件有效。",
   "publicMode": "公共模式",
-  "publicModeHint": "开启后服务将允许外部访问，地址栏将被禁用",
+  "publicModeHintDesc": "开启后服务将允许外部访问，地址栏将被禁用",
+  "themeSelection": "主题",
+  "check": "检查",
+  "launchService": "启动服务",
+  "stopService": "停止服务",
+  "endpoint": "访问地址",
+  "statusActive": "运行中",
+  "statusSyncing": "启动中",
+  "statusIdle": "待机",
+  "publicModeEnabled": "公共模式已开启",
+  "localMode": "本地模式",
+  "unableToGetDeviceIp": "无法获取设备IP",
+  "localModeHint": "1. 进入服务配置\n2. 打开公共模式\n3. 重启服务\n4. 扫描二维码访问PicoClaw",
+  "publicModeHint": "1. 启动服务\n2. 扫描二维码访问PicoClaw",
   "@coreUnknownError": {
     "placeholders": {
       "code": {}

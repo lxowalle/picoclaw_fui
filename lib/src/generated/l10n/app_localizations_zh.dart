@@ -110,5 +110,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get publicMode => '公共模式';
 
   @override
-  String get publicModeHint => '开启后服务将允许外部访问，地址栏将被禁用';
+  String get publicModeHintDesc => '开启后服务将允许外部访问，地址栏将被禁用';
+
+  @override
+  String get themeSelection => '主题';
+
+  @override
+  String get check => '检查';
+
+  @override
+  String get launchService => '启动服务';
+
+  @override
+  String get stopService => '停止服务';
+
+  @override
+  String get endpoint => '访问地址';
+
+  @override
+  String get statusActive => '运行中';
+
+  @override
+  String get statusSyncing => '启动中';
+
+  @override
+  String get statusIdle => '待机';
+
+  @override
+  String get publicModeEnabled => '公共模式已开启';
+
+  @override
+  String get localMode => '本地模式';
+
+  @override
+  String get unableToGetDeviceIp => '无法获取设备IP';
+
+  @override
+  String get localModeHint =>
+      '1. 进入服务配置\n2. 打开公共模式\n3. 重启服务\n4. 扫描二维码访问PicoClaw';
+
+  @override
+  String get publicModeHint => '1. 启动服务\n2. 扫描二维码访问PicoClaw';
 }

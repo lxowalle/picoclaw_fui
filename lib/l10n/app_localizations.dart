@@ -175,6 +175,61 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get save;
+
+  /// Theme selection title
+  ///
+  /// In en, this message translates to:
+  /// **'Theme Selection'**
+  String get themeSelection;
+
+  /// Check button text
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get check;
+
+  /// Browse button text
+  ///
+  /// In en, this message translates to:
+  /// **'Browse'**
+  String get browse;
+
+  /// Binary path field label
+  ///
+  /// In en, this message translates to:
+  /// **'Binary Path'**
+  String get binaryPath;
+
+  /// Arguments field label
+  ///
+  /// In en, this message translates to:
+  /// **'Arguments'**
+  String get arguments;
+
+  /// Arguments field hint
+  ///
+  /// In en, this message translates to:
+  /// **'Additional arguments'**
+  String get argumentsHint;
+
+  /// Public mode switch title
+  ///
+  /// In en, this message translates to:
+  /// **'Public Mode'**
+  String get publicMode;
+
+  /// Public mode hint text
+  ///
+  /// In en, this message translates to:
+  /// **'Allow access from other devices'**
+  String get publicModeHintDesc;
+
+  /// Core validation messages
+  String get coreValid;
+  String get coreBinaryMissing;
+  String get coreInvalidBinary;
+  String get coreStartFailed;
+  String coreUnknownError(String code);
 }
 
 class _AppLocalizationsDelegate
