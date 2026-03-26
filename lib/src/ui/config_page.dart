@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +8,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:picoclaw_flutter_ui/src/core/app_theme.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:picoclaw_flutter_ui/src/core/picoclaw_channel.dart';
 
 const String _githubRepoUrl = 'https://github.com/sipeed/picoclaw_fui';
 
@@ -35,21 +33,11 @@ class _ConfigPageState extends State<ConfigPage> {
   final _browseFocusNode = FocusNode();
   final _checkFocusNode = FocusNode();
   final _argsFocusNode = FocusNode();
-  final _saveFocusNode = FocusNode();
   final List<FocusNode> _themeFocusNodes = [];
 
   @override
   void initState() {
     super.initState();
-    final service = context.read<ServiceManager>();
-    // 从实际配置获取地址和端口
-    // 如果publicMode为true，host显示0.0.0.0
-    _hostController.text = service.publicMode
-        ? '0.0.0.0'
-        : service.webUrl.replaceAll('http://', '').split(':').first;
-    _portController.text = service.webUrl.split(':').last;
-    _pathController.text = service.binaryPath;
-    _argsController.text = service.arguments;
     _loadConfig();
 
     // Initialize theme focus nodes
@@ -59,53 +47,16 @@ class _ConfigPageState extends State<ConfigPage> {
   }
 
   Future<void> _loadConfig() async {
-    try {
-      String configStr;
-      if (Platform.isAndroid) {
-        configStr = await PicoClawChannel.getConfig();
-      } else {
-        final file = File('config.json');
-        if (await file.exists()) {
-          configStr = await file.readAsString();
-        } else {
-          configStr = '';
-        }
-      }
-
-      if (configStr.isEmpty) {
-        return;
-      }
-
-      final config = jsonDecode(configStr) as Map<String, dynamic>;
-
-      // 从config.json读取gateway配置并更新UI
-      final gateway = config['gateway'] as Map<String, dynamic>?;
-      if (gateway != null && mounted) {
-        final service = context.read<ServiceManager>();
-        final port = gateway['port'] as int?;
-
-        // 如果publicMode为true，显示0.0.0.0，否则显示config.json中的host
-        if (service.publicMode) {
-          setState(() {
-            _hostController.text = '0.0.0.0';
-          });
-        } else {
-          final host = gateway['host'] as String?;
-          if (host != null && host.isNotEmpty) {
-            setState(() {
-              _hostController.text = host;
-            });
-          }
-        }
-
-        if (port != null && port > 0) {
-          setState(() {
-            _portController.text = port.toString();
-          });
-        }
-      }
-    } catch (e) {
-      // Ignore config loading errors
+    // 统一从 ServiceManager 加载配置，所有平台使用相同方式
+    final service = context.read<ServiceManager>();
+    if (mounted) {
+      setState(() {
+        // 如果publicMode为true，显示0.0.0.0，否则显示ServiceManager中的host
+        _hostController.text = service.publicMode ? '0.0.0.0' : service.host;
+        _portController.text = service.port.toString();
+        _pathController.text = service.binaryPath;
+        _argsController.text = service.arguments;
+      });
     }
   }
 
@@ -124,12 +75,30 @@ class _ConfigPageState extends State<ConfigPage> {
     _browseFocusNode.dispose();
     _checkFocusNode.dispose();
     _argsFocusNode.dispose();
-    _saveFocusNode.dispose();
     for (final node in _themeFocusNodes) {
       node.dispose();
     }
 
     super.dispose();
+  }
+
+  Future<void> _saveConfig() async {
+    final service = context.read<ServiceManager>();
+    final port = int.tryParse(_portController.text);
+
+    if (port != null) {
+      final String? binaryArg = (Platform.isWindows || Platform.isAndroid)
+          ? null
+          : _pathController.text;
+
+      await service.updateConfig(
+        _hostController.text,
+        port,
+        binaryPath: binaryArg,
+        arguments: _argsController.text,
+        publicMode: service.publicMode,
+      );
+    }
   }
 
   Future<void> _pickFile() async {
@@ -140,6 +109,7 @@ class _ConfigPageState extends State<ConfigPage> {
 
     if (result != null) {
       _pathController.text = result.files.single.path ?? '';
+      await _saveConfig();
     }
   }
 
@@ -214,6 +184,7 @@ class _ConfigPageState extends State<ConfigPage> {
               enabled: !service.publicMode,
               nextFocusNode: _portFocusNode,
               prevFocusNode: _publicModeFocusNode,
+              onSubmitted: _saveConfig,
             ),
             const SizedBox(height: 16),
 
@@ -227,6 +198,7 @@ class _ConfigPageState extends State<ConfigPage> {
                   ? _pathFocusNode
                   : _argsFocusNode,
               prevFocusNode: _hostFocusNode,
+              onSubmitted: _saveConfig,
             ),
             const SizedBox(height: 16),
 
@@ -240,6 +212,7 @@ class _ConfigPageState extends State<ConfigPage> {
                       label: l10n.binaryPath,
                       nextFocusNode: _browseFocusNode,
                       prevFocusNode: _portFocusNode,
+                      onSubmitted: _saveConfig,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -354,79 +327,15 @@ class _ConfigPageState extends State<ConfigPage> {
               focusNode: _argsFocusNode,
               label: l10n.arguments,
               hint: l10n.argumentsHint,
-              nextFocusNode: _saveFocusNode,
+              nextFocusNode: _themeFocusNodes.isNotEmpty
+                  ? _themeFocusNodes.first
+                  : _argsFocusNode,
               prevFocusNode: (!Platform.isWindows && !Platform.isAndroid)
                   ? _checkFocusNode
                   : _portFocusNode,
+              onSubmitted: _saveConfig,
             ),
             const SizedBox(height: 24),
-
-            // Save button
-            Builder(
-              builder: (ctx) {
-                final cs = Theme.of(ctx).colorScheme;
-                return FocusableButton(
-                  focusNode: _saveFocusNode,
-                  onPressed: () async {
-                    final port = int.tryParse(_portController.text);
-                    if (port != null) {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final savedL10n = AppLocalizations.of(context)!;
-                      final String? binaryArg =
-                          (Platform.isWindows || Platform.isAndroid)
-                          ? null
-                          : _pathController.text;
-
-                      await service.updateConfig(
-                        _hostController.text,
-                        port,
-                        binaryPath: binaryArg,
-                        arguments: _argsController.text,
-                        publicMode: service.publicMode,
-                      );
-
-                      if (mounted) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(savedL10n.save)),
-                        );
-                        final code = service.lastErrorCode;
-                        if (code != null) {
-                          String msg;
-                          final l = savedL10n;
-                          if (code == 'core.binary_missing') {
-                            msg = l.coreBinaryMissing;
-                          } else if (code == 'core.start_failed') {
-                            msg = l.coreStartFailed;
-                          } else if (code == 'core.stop_failed') {
-                            msg = l.coreStopFailed;
-                          } else {
-                            msg = l.coreUnknownError(code);
-                          }
-                          messenger.showSnackBar(SnackBar(content: Text(msg)));
-                        }
-                      }
-                    }
-                  },
-                  nextFocusNode: _themeFocusNodes.isNotEmpty
-                      ? _themeFocusNodes.first
-                      : _saveFocusNode,
-                  prevFocusNode: _argsFocusNode,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.secondary,
-                    foregroundColor: cs.onSecondary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: Text(l10n.save),
-                );
-              },
-            ),
 
             // Theme selection
             const SizedBox(height: 32),
@@ -469,7 +378,7 @@ class _ConfigPageState extends State<ConfigPage> {
                             .requestFocus();
                       }
                     },
-                    onArrowUp: () => _saveFocusNode.requestFocus(),
+                    onArrowUp: () => _argsFocusNode.requestFocus(),
                   );
                 }).toList(),
               ),
@@ -493,6 +402,7 @@ class FocusableTextField extends StatefulWidget {
   final bool enabled;
   final FocusNode nextFocusNode;
   final FocusNode prevFocusNode;
+  final VoidCallback? onSubmitted;
 
   const FocusableTextField({
     super.key,
@@ -504,6 +414,7 @@ class FocusableTextField extends StatefulWidget {
     this.enabled = true,
     required this.nextFocusNode,
     required this.prevFocusNode,
+    this.onSubmitted,
   });
 
   @override
@@ -588,7 +499,11 @@ class _FocusableTextFieldState extends State<FocusableTextField> {
           keyboardType: widget.keyboardType,
           enabled: widget.enabled,
           onEditingComplete: () {
+            widget.onSubmitted?.call();
             widget.nextFocusNode.requestFocus();
+          },
+          onSubmitted: (_) {
+            widget.onSubmitted?.call();
           },
           textInputAction: TextInputAction.next,
         ),
@@ -788,9 +703,7 @@ class _PublicModeToggleState extends State<PublicModeToggle> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: (widget.isPublicMode || _isFocused)
-                      ? Theme.of(
-                          context,
-                        ).colorScheme.secondary.withAlpha(40)
+                      ? Theme.of(context).colorScheme.secondary.withAlpha(40)
                       : null,
                   borderRadius: BorderRadius.circular(8),
                 ),

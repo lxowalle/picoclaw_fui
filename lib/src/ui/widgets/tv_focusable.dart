@@ -50,6 +50,13 @@ class TVFocusable extends StatefulWidget {
 
 class _TVFocusableState extends State<TVFocusable> {
   bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +76,7 @@ class _TVFocusableState extends State<TVFocusable> {
     final effectiveShowGlow = isSubtle ? false : widget.showFocusGlow;
 
     return FocusableActionDetector(
+      focusNode: _focusNode,
       autofocus: widget.autofocus,
       onFocusChange: (focused) {
         setState(() => _isFocused = focused);
@@ -82,7 +90,13 @@ class _TVFocusableState extends State<TVFocusable> {
         ),
       },
       child: GestureDetector(
-        onTap: widget.onTap,
+        onTap: () {
+          // 在触摸设备上点击时请求焦点
+          if (!_focusNode.hasFocus) {
+            _focusNode.requestFocus();
+          }
+          widget.onTap?.call();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,

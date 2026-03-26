@@ -154,218 +154,68 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 // Glassmorphism Status Card
-                Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface.withAlpha(
-                      ((0.4).clamp(0.0, 1.0) * 255).round(),
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: colorScheme.onSurface.withAlpha(
-                        ((0.08).clamp(0.0, 1.0) * 255).round(),
-                      ),
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left side: Primary info
-                      Expanded(
-                        flex: 3,
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.secondary.withAlpha(
-                                        ((0.1).clamp(0.0, 1.0) * 255).round(),
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      Remix.link_m,
-                                      color: colorScheme.secondary,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    child: Text(
-                                      l10n.endpoint,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1.5,
-                                        color: colorScheme.onSurface.withAlpha(
-                                          ((0.5).clamp(0.0, 1.0) * 255).round(),
-                                        ),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              // 公共模式状态指示器
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    service.publicMode
-                                        ? Icons.public
-                                        : Icons.lock_outline,
-                                    size: 16,
-                                    color: colorScheme.secondary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    service.publicMode
-                                        ? l10n.publicModeEnabled
-                                        : l10n.localMode,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: colorScheme.secondary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              // Endpoint 显示地址：公共模式开启时使用设备IP，否则使用内部地址
-                              Builder(
-                                builder: (context) {
-                                  // 公共模式开启但无法获取IP时显示警告
-                                  if (service.publicMode && _deviceIp == null) {
-                                    return TVFocusable(
-                                      onTap: null,
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 4,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              service.webUrl,
-                                              style: GoogleFonts.firaCode(
-                                                fontSize: 20,
-                                                color: colorScheme.secondary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.warning_amber_rounded,
-                                                  size: 14,
-                                                  color: colorScheme.error,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  l10n.unableToGetDeviceIp,
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: colorScheme.error,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                  final displayUrl =
-                                      (service.publicMode && _deviceIp != null)
-                                      ? 'http://$_deviceIp:${service.webUrl.split(':').last}'
-                                      : service.webUrl;
-                                  return TVFocusable(
-                                    onTap: () =>
-                                        launchUrl(Uri.parse(displayUrl)),
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 4,
-                                      ),
-                                      child: Text(
-                                        displayUrl,
-                                        style: GoogleFonts.firaCode(
-                                          fontSize: 20,
-                                          color: colorScheme.secondary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                l10n.webAdmin,
-                                style: TextStyle(
-                                  color: colorScheme.onSurface.withAlpha(
-                                    ((0.4).clamp(0.0, 1.0) * 255).round(),
-                                  ),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    // 窄屏时垂直布局，宽屏时水平布局
+                    final isNarrow = constraints.maxWidth < 600;
+
+                    Widget infoSection = _buildInfoSection(
+                      context,
+                      service,
+                      colorScheme,
+                      l10n,
+                    );
+
+                    Widget qrSection = _buildQrSection(
+                      context,
+                      qrData,
+                      colorScheme,
+                    );
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withAlpha(
+                          ((0.4).clamp(0.0, 1.0) * 255).round(),
                         ),
-                      ),
-                      // Right side: QR Tile
-                      Container(
-                        width: 200,
-                        height: 240, // Fixed height instead of stretching
-                        decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
                           color: colorScheme.onSurface.withAlpha(
-                            ((0.03).clamp(0.0, 1.0) * 255).round(),
-                          ),
-                          border: Border(
-                            left: BorderSide(
-                              color: colorScheme.onSurface.withAlpha(
-                                ((0.05).clamp(0.0, 1.0) * 255).round(),
-                              ),
-                            ),
+                            ((0.08).clamp(0.0, 1.0) * 255).round(),
                           ),
                         ),
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withAlpha(
-                                    ((0.1).clamp(0.0, 1.0) * 255).round(),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: isNarrow
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                infoSection,
+                                Container(
+                                  width: double.infinity,
+                                  height: 1,
+                                  color: colorScheme.onSurface.withAlpha(
+                                    ((0.05).clamp(0.0, 1.0) * 255).round(),
                                   ),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
                                 ),
+                                Center(child: qrSection),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 3, child: infoSection),
+                                Container(
+                                  width: 1,
+                                  height: 240,
+                                  color: colorScheme.onSurface.withAlpha(
+                                    ((0.05).clamp(0.0, 1.0) * 255).round(),
+                                  ),
+                                ),
+                                qrSection,
                               ],
                             ),
-                            child: QrImageView(
-                              data: qrData,
-                              version: QrVersions.auto,
-                              size: 140.0,
-                              gapless: true,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 32),
                 // Hint at bottom center
@@ -409,6 +259,198 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(
+    BuildContext context,
+    ServiceManager service,
+    ColorScheme colorScheme,
+    AppLocalizations l10n,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.secondary.withAlpha(
+                    ((0.1).clamp(0.0, 1.0) * 255).round(),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Remix.link_m,
+                  color: colorScheme.secondary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  l10n.endpoint,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                    color: colorScheme.onSurface.withAlpha(
+                      ((0.5).clamp(0.0, 1.0) * 255).round(),
+                    ),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 公共模式状态指示器
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                service.publicMode ? Icons.public : Icons.lock_outline,
+                size: 16,
+                color: colorScheme.secondary,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  service.publicMode ? l10n.publicModeEnabled : l10n.localMode,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Endpoint 显示地址：公共模式开启时使用设备IP，否则使用内部地址
+          Builder(
+            builder: (context) {
+              // 公共模式开启但无法获取IP时显示警告
+              if (service.publicMode && _deviceIp == null) {
+                return TVFocusable(
+                  onTap: null,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          service.webUrl,
+                          style: GoogleFonts.firaCode(
+                            fontSize: 20,
+                            color: colorScheme.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 14,
+                              color: colorScheme.error,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                l10n.unableToGetDeviceIp,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.error,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              final displayUrl = (service.publicMode && _deviceIp != null)
+                  ? 'http://$_deviceIp:${service.webUrl.split(':').last}'
+                  : service.webUrl;
+              return TVFocusable(
+                onTap: () => launchUrl(Uri.parse(displayUrl)),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    displayUrl,
+                    style: GoogleFonts.firaCode(
+                      fontSize: 20,
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.webAdmin,
+            style: TextStyle(
+              color: colorScheme.onSurface.withAlpha(
+                ((0.4).clamp(0.0, 1.0) * 255).round(),
+              ),
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQrSection(
+    BuildContext context,
+    String qrData,
+    ColorScheme colorScheme,
+  ) {
+    return Container(
+      width: 200,
+      height: 240,
+      decoration: BoxDecoration(
+        color: colorScheme.onSurface.withAlpha(
+          ((0.03).clamp(0.0, 1.0) * 255).round(),
+        ),
+      ),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(
+                  ((0.1).clamp(0.0, 1.0) * 255).round(),
+                ),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: QrImageView(
+            data: qrData,
+            version: QrVersions.auto,
+            size: 140.0,
+            gapless: true,
+          ),
+        ),
       ),
     );
   }

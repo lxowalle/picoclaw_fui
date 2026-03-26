@@ -64,6 +64,8 @@ class ServiceManager extends ChangeNotifier {
   AppThemeMode get currentThemeMode => _currentThemeMode;
 
   String get webUrl => 'http://$_host:$_port';
+  String get host => _host;
+  int get port => _port;
   String get binaryPath => _binaryPath;
   String get arguments => _arguments;
   bool get publicMode => _publicMode;
