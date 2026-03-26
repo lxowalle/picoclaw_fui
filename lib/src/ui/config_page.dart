@@ -832,7 +832,9 @@ class _PublicModeToggleState extends State<PublicModeToggle> {
                 height: 28,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: widget.isPublicMode
+                      ? Theme.of(context).colorScheme.secondary
+                      : Theme.of(context).colorScheme.secondary.withAlpha(100),
                 ),
                 child: AnimatedAlign(
                   duration: const Duration(milliseconds: 200),
