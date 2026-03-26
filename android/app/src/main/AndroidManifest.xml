@@ -70,6 +70,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- Firebase Analytics Configuration - 必须配置才能启用 Analytics -->
+        <!-- 从 Firebase Console 的 google-services.json 获取这些值 -->
+        <meta-data
+            android:name="com.google.android.gms.google_app_id"
+            android:value="@string/google_app_id" />
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/google_app_id" />
     </application>
 
     <queries>

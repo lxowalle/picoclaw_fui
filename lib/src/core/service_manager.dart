@@ -3,23 +3,60 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
+import 'device_feedback_models.dart';
+import 'firebase_device_reporter.dart';
 import 'picoclaw_channel.dart';
+import 'umeng_device_reporter.dart';
 import '../native/core_service_adapter_factory.dart';
 import '../native/core_service_adapter.dart';
 
 enum ServiceStatus { stopped, running, starting }
 
 class ServiceManager extends ChangeNotifier {
+  static const List<Duration> _deviceFeedbackRetryDelays = [
+    Duration(seconds: 15),
+    Duration(minutes: 1),
+    Duration(minutes: 5),
+  ];
+  static final DeviceFeedbackProvider _deviceFeedbackProvider =
+      DeviceFeedbackProvider.fromEnvironmentValue(
+        String.fromEnvironment(
+          'PICOCLAW_ANALYTICS_PROVIDER',
+          defaultValue: 'firebase',
+        ),
+      );
+  static const String _firebaseProjectId = String.fromEnvironment(
+    'PICOCLAW_FIREBASE_PROJECT_ID',
+    defaultValue: 'picoclaw-analytics',
+  );
+  static const String _firebaseApiKey = String.fromEnvironment(
+    'PICOCLAW_FIREBASE_API_KEY',
+  );
+  static const String _firebaseAppId = String.fromEnvironment(
+    'PICOCLAW_FIREBASE_APP_ID',
+  );
+  static const String _firebaseMessagingSenderId = String.fromEnvironment(
+    'PICOCLAW_FIREBASE_MESSAGING_SENDER_ID',
+  );
+  static const String _firebaseStorageBucket = String.fromEnvironment(
+    'PICOCLAW_FIREBASE_STORAGE_BUCKET',
+    defaultValue: '',
+  );
+  static const String _umengAppKey = String.fromEnvironment(
+    'PICOCLAW_UMENG_APP_KEY',
+  );
+  static const String _umengChannel = String.fromEnvironment(
+    'PICOCLAW_UMENG_CHANNEL',
+    defaultValue: 'official',
+  );
+
   static final ServiceManager _instance = ServiceManager._internal();
   factory ServiceManager() => _instance;
   ServiceManager._internal() {
-    // Process monitoring: register signal handlers where supported.
     if (!kIsWeb) {
       try {
         ProcessSignal.sigint.watch().listen((_) => stop());
       } catch (_) {}
-
-      // SIGTERM is not supported on Windows; guard with try/catch as well.
       try {
         if (!Platform.isWindows) {
           ProcessSignal.sigterm.watch().listen((_) => stop());
@@ -29,9 +66,18 @@ class ServiceManager extends ChangeNotifier {
   }
 
   final CoreServiceAdapter _adapter = CoreServiceAdapterFactory.create();
+  final FirebaseDeviceReporter _firebaseReporter = FirebaseDeviceReporter();
+  final UmengDeviceReporter _umengReporter = UmengDeviceReporter();
   String? _lastErrorCode;
+  String? _lastDeviceFeedbackSyncMessage;
+  Future<DeviceFeedbackUploadResult>? _deviceFeedbackUploadTask;
+  Timer? _deviceFeedbackRetryTimer;
+  int _deviceFeedbackRetryAttempt = 0;
 
   String? get lastErrorCode => _lastErrorCode ?? _adapter.getLastErrorCode();
+  String? get lastDeviceFeedbackSyncMessage => _lastDeviceFeedbackSyncMessage;
+  bool get isDeviceFeedbackUploadInProgress =>
+      _deviceFeedbackUploadTask != null;
 
   ServiceStatus _status = ServiceStatus.stopped;
   final List<String> _logs = [];
@@ -45,7 +91,6 @@ class ServiceManager extends ChangeNotifier {
   String _arguments = '';
   bool _publicMode = false;
 
-  // Android 原生服务状态
   int _nativePid = -1;
   String _healthStatus = '';
   String _healthUptime = '';
@@ -56,12 +101,16 @@ class ServiceManager extends ChangeNotifier {
   String get healthUptime => _healthUptime;
   bool get autoStart => _autoStart;
 
-  // Android 状态轮询定时器
   Timer? _androidPollingTimer;
 
-  // Theme state
   AppThemeMode _currentThemeMode = AppThemeMode.carbon;
   AppThemeMode get currentThemeMode => _currentThemeMode;
+  DeviceFeedbackProvider get deviceFeedbackProvider => _deviceFeedbackProvider;
+  bool get isDeviceFeedbackEnabled => switch (_deviceFeedbackProvider) {
+    DeviceFeedbackProvider.none => false,
+    DeviceFeedbackProvider.firebase => Platform.isAndroid || Platform.isIOS,
+    DeviceFeedbackProvider.umeng => Platform.isAndroid,
+  };
 
   String get webUrl => 'http://$_host:$_port';
   String get host => _host;
@@ -70,7 +119,6 @@ class ServiceManager extends ChangeNotifier {
   String get arguments => _arguments;
   bool get publicMode => _publicMode;
 
-  /// 获取本机可公开的网络IP，以太网优先，其次WiFi
   Future<String?> getDeviceIpAddress() async {
     try {
       final interfaces = await NetworkInterface.list(
@@ -90,32 +138,26 @@ class ServiceManager extends ChangeNotifier {
             continue;
           }
 
-          // 保存任何有效的IP作为备选
           anyIp ??= ip;
 
-          // 以太网优先 (支持更多命名方式)
           if (name.contains('eth') ||
               name.startsWith('en') ||
               name.contains('ethernet') ||
-              name.contains('ens') || // Linux systemd 命名
+              name.contains('ens') ||
               name.contains('enp')) {
-            // Linux PCI 命名
             return ip;
           }
-          // WiFi次之 (支持更多命名方式)
           if (wifiIp == null &&
               (name.contains('wlan') ||
                   name.contains('wifi') ||
                   name.contains('wl') ||
-                  name.startsWith('wlp') || // Linux PCI WiFi
+                  name.startsWith('wlp') ||
                   name.startsWith('wlo'))) {
-            // Linux onboard WiFi
             wifiIp = ip;
           }
         }
       }
 
-      // 如果没有找到以太网或WiFi，返回任何可用的IP
       return wifiIp ?? anyIp;
     } catch (e) {
       debugPrint('Failed to get device IP: $e');
@@ -131,13 +173,11 @@ class ServiceManager extends ChangeNotifier {
     _arguments = prefs.getString('arguments') ?? '';
     _publicMode = prefs.getBool('publicMode') ?? false;
 
-    // Load theme
     final themeIndex = prefs.getInt('theme_mode') ?? 0;
     _currentThemeMode = AppThemeMode.values[themeIndex];
 
-    // Android: 初始化时同步原生服务状态
     if (Platform.isAndroid) {
-      _port = 18800; // Android 使用 Web Console 端口
+      _port = 18800;
       _host = '127.0.0.1';
       try {
         _autoStart = await PicoClawChannel.getAutoStart();
@@ -146,15 +186,40 @@ class ServiceManager extends ChangeNotifier {
       _startAndroidPolling();
     }
 
-    // Register log handler so adapters can forward runtime logs to us
     try {
       _adapter.setLogHandler(_addLog);
     } catch (_) {}
 
+    // 自动上报设备反馈（如果用户已同意且满足条件）
+    unawaited(_autoUploadDeviceFeedbackIfNeeded());
+
     notifyListeners();
   }
 
-  /// Android: 同步原生服务状态
+  Future<void> _autoUploadDeviceFeedbackIfNeeded() async {
+    try {
+      final isAllowed = await isDeviceFeedbackAllowed();
+      final shouldUpload = await shouldAutoUploadDeviceFeedbackReport();
+      debugPrint(
+        '[ServiceManager] Auto-upload check: allowed=$isAllowed, shouldUpload=$shouldUpload',
+      );
+
+      // 检查是否需要上报：用户已同意且未在最近上报过
+      if (isAllowed && shouldUpload) {
+        debugPrint(
+          '[ServiceManager] Auto-uploading device feedback on init...',
+        );
+        triggerDeviceFeedbackUploadInBackground();
+      } else {
+        debugPrint(
+          '[ServiceManager] Auto-upload skipped: allowed=$isAllowed, shouldUpload=$shouldUpload',
+        );
+      }
+    } catch (e) {
+      debugPrint('[ServiceManager] Auto-upload failed: $e');
+    }
+  }
+
   Future<void> _syncAndroidServiceStatus() async {
     try {
       final status = await PicoClawChannel.getServiceStatus();
@@ -169,7 +234,6 @@ class ServiceManager extends ChangeNotifier {
         _addLog(lastLog);
       }
 
-      // 如果服务正在运行，检查健康状态
       if (isRunning) {
         try {
           final health = await PicoClawChannel.checkHealth();
@@ -195,7 +259,6 @@ class ServiceManager extends ChangeNotifier {
     }
   }
 
-  /// Android: 启动状态轮询
   void _startAndroidPolling() {
     _androidPollingTimer?.cancel();
     _androidPollingTimer = Timer.periodic(
@@ -204,7 +267,6 @@ class ServiceManager extends ChangeNotifier {
     );
   }
 
-  /// Android: 设置开机自启
   Future<void> setAutoStart(bool enabled) async {
     if (Platform.isAndroid) {
       await PicoClawChannel.setAutoStart(enabled);
@@ -220,6 +282,315 @@ class ServiceManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Map<String, String>> getDeviceFeedbackDeviceInfo() async {
+    switch (_deviceFeedbackProvider) {
+      case DeviceFeedbackProvider.firebase:
+        return _firebaseReporter.collectSafeDeviceInfo();
+      case DeviceFeedbackProvider.umeng:
+        return _umengReporter.collectSafeDeviceInfo();
+      case DeviceFeedbackProvider.none:
+        return const {};
+    }
+  }
+
+  Future<bool> isDeviceFeedbackAllowed() async {
+    switch (_deviceFeedbackProvider) {
+      case DeviceFeedbackProvider.firebase:
+        return _firebaseReporter.isUploadAllowed();
+      case DeviceFeedbackProvider.umeng:
+        return _umengReporter.isUploadAllowed();
+      case DeviceFeedbackProvider.none:
+        return false;
+    }
+  }
+
+  Future<bool> shouldAskForDeviceFeedbackUpload() async {
+    if (!isDeviceFeedbackEnabled) {
+      return false;
+    }
+    switch (_deviceFeedbackProvider) {
+      case DeviceFeedbackProvider.firebase:
+        return !(await _firebaseReporter.hasUploadConsentChoice());
+      case DeviceFeedbackProvider.umeng:
+        return !(await _umengReporter.hasUploadConsentChoice());
+      case DeviceFeedbackProvider.none:
+        return false;
+    }
+  }
+
+  Future<bool> shouldAutoUploadDeviceFeedbackReport() async {
+    switch (_deviceFeedbackProvider) {
+      case DeviceFeedbackProvider.firebase:
+        return _firebaseReporter.shouldUpload();
+      case DeviceFeedbackProvider.umeng:
+        return _umengReporter.shouldUpload();
+      case DeviceFeedbackProvider.none:
+        return false;
+    }
+  }
+
+  Future<void> setDeviceFeedbackUploadAllowed(bool allowed) async {
+    if (!allowed) {
+      _resetDeviceFeedbackRetryState();
+    }
+    switch (_deviceFeedbackProvider) {
+      case DeviceFeedbackProvider.firebase:
+        await _firebaseReporter.setUploadAllowed(allowed);
+        return;
+      case DeviceFeedbackProvider.umeng:
+        await _umengReporter.setUploadAllowed(allowed);
+        return;
+      case DeviceFeedbackProvider.none:
+        return;
+    }
+  }
+
+  Future<DeviceFeedbackUploadResult> uploadDeviceFeedbackReport() async {
+    final ongoingTask = _deviceFeedbackUploadTask;
+    if (ongoingTask != null) {
+      return ongoingTask;
+    }
+
+    _lastDeviceFeedbackSyncMessage = 'Syncing device feedback in background...';
+    notifyListeners();
+
+    final task = _uploadDeviceFeedbackReportInternal();
+    _deviceFeedbackUploadTask = task;
+
+    try {
+      return await task;
+    } finally {
+      if (identical(_deviceFeedbackUploadTask, task)) {
+        _deviceFeedbackUploadTask = null;
+        notifyListeners();
+      }
+    }
+  }
+
+  void triggerDeviceFeedbackUploadInBackground() {
+    debugPrint(
+      '[ServiceManager] triggerDeviceFeedbackUploadInBackground called',
+    );
+    debugPrint(
+      '[ServiceManager] isDeviceFeedbackEnabled=$isDeviceFeedbackEnabled, isDeviceFeedbackUploadInProgress=$isDeviceFeedbackUploadInProgress',
+    );
+    if (!isDeviceFeedbackEnabled || isDeviceFeedbackUploadInProgress) {
+      debugPrint(
+        '[ServiceManager] Upload skipped: feedback=${isDeviceFeedbackEnabled}, inProgress=${isDeviceFeedbackUploadInProgress}',
+      );
+      return;
+    }
+    _deviceFeedbackRetryTimer?.cancel();
+    _deviceFeedbackRetryTimer = null;
+    debugPrint('[ServiceManager] Starting uploadDeviceFeedbackReport...');
+    unawaited(uploadDeviceFeedbackReport());
+  }
+
+  Future<DeviceFeedbackUploadResult>
+  _uploadDeviceFeedbackReportInternal() async {
+    debugPrint(
+      '[ServiceManager] Starting device feedback upload, provider: $_deviceFeedbackProvider',
+    );
+    late final DeviceFeedbackUploadResult result;
+    switch (_deviceFeedbackProvider) {
+      case DeviceFeedbackProvider.firebase:
+        debugPrint('[ServiceManager] Checking Firebase config...');
+        debugPrint(
+          '[ServiceManager] apiKey: ${_firebaseApiKey.isEmpty ? "EMPTY" : "set (${_firebaseApiKey.length} chars)"}',
+        );
+        debugPrint(
+          '[ServiceManager] appId: ${_firebaseAppId.isEmpty ? "EMPTY" : "set"}',
+        );
+        debugPrint(
+          '[ServiceManager] projectId: ${_firebaseProjectId.isEmpty ? "EMPTY" : "set"}',
+        );
+        debugPrint(
+          '[ServiceManager] messagingSenderId: ${_firebaseMessagingSenderId.isEmpty ? "EMPTY" : "set"}',
+        );
+        if (_firebaseApiKey.trim().isEmpty) {
+          result = const DeviceFeedbackUploadResult(
+            success: false,
+            message: 'Missing PICOCLAW_FIREBASE_API_KEY build configuration.',
+          );
+          debugPrint(
+            '[ServiceManager] Firebase config validation failed: API key is empty',
+          );
+          break;
+        }
+        if (_firebaseAppId.trim().isEmpty) {
+          result = const DeviceFeedbackUploadResult(
+            success: false,
+            message: 'Missing PICOCLAW_FIREBASE_APP_ID build configuration.',
+          );
+          debugPrint(
+            '[ServiceManager] Firebase config validation failed: App ID is empty',
+          );
+          break;
+        }
+        if (_firebaseMessagingSenderId.trim().isEmpty) {
+          result = const DeviceFeedbackUploadResult(
+            success: false,
+            message:
+                'Missing PICOCLAW_FIREBASE_MESSAGING_SENDER_ID build configuration.',
+          );
+          debugPrint(
+            '[ServiceManager] Firebase config validation failed: Messaging Sender ID is empty',
+          );
+          break;
+        }
+        debugPrint(
+          '[ServiceManager] Firebase config validation passed, calling uploadDeviceReport...',
+        );
+        debugPrint(
+          '[ServiceManager] storageBucket: ${_firebaseStorageBucket.isEmpty ? "EMPTY" : "set"}',
+        );
+        result = await _firebaseReporter.uploadDeviceReport(
+          appId: _firebaseAppId,
+          projectId: _firebaseProjectId,
+          apiKey: _firebaseApiKey,
+          messagingSenderId: _firebaseMessagingSenderId,
+          storageBucket: _firebaseStorageBucket.isEmpty
+              ? null
+              : _firebaseStorageBucket,
+        );
+        debugPrint(
+          '[ServiceManager] uploadDeviceReport returned: success=${result.success}, message=${result.message}',
+        );
+        break;
+      case DeviceFeedbackProvider.umeng:
+        if (_umengAppKey.trim().isEmpty) {
+          result = const DeviceFeedbackUploadResult(
+            success: false,
+            message: 'Missing PICOCLAW_UMENG_APP_KEY build configuration.',
+          );
+          break;
+        }
+        result = await _umengReporter.uploadDeviceReport(
+          appKey: _umengAppKey,
+          channel: _umengChannel,
+        );
+        break;
+      case DeviceFeedbackProvider.none:
+        result = const DeviceFeedbackUploadResult(
+          success: false,
+          message: 'Device feedback provider is disabled.',
+        );
+        break;
+    }
+    _lastDeviceFeedbackSyncMessage = result.message;
+    debugPrint(
+      '[ServiceManager] Upload completed - success=${result.success}, message="${result.message}"',
+    );
+    if (result.success) {
+      debugPrint('[ServiceManager] Resetting retry state (notify=false)');
+      _resetDeviceFeedbackRetryState(notify: false);
+    } else {
+      debugPrint('[ServiceManager] Scheduling retry if needed...');
+      await _scheduleDeviceFeedbackRetryIfNeeded(result);
+    }
+    _addLog(
+      result.success
+          ? 'Device feedback sync succeeded.'
+          : 'Device feedback sync failed: ${result.message}',
+    );
+    if (!result.success) {
+      debugPrint('Device feedback sync failed: ${result.message}');
+    }
+    return result;
+  }
+
+  Future<void> _scheduleDeviceFeedbackRetryIfNeeded(
+    DeviceFeedbackUploadResult result,
+  ) async {
+    if (!_shouldRetryDeviceFeedback(result.message)) {
+      debugPrint('Device feedback will not retry: ${result.message}');
+      _resetDeviceFeedbackRetryState(notify: false);
+      return;
+    }
+    if (!await isDeviceFeedbackAllowed()) {
+      debugPrint('Device feedback retry cancelled: user disabled upload');
+      _resetDeviceFeedbackRetryState(notify: false);
+      return;
+    }
+    if (_deviceFeedbackRetryAttempt >= _deviceFeedbackRetryDelays.length) {
+      _lastDeviceFeedbackSyncMessage =
+          '${result.message} Auto retry stopped for now.';
+      debugPrint(
+        'Device feedback retry stopped after ${_deviceFeedbackRetryDelays.length} attempts',
+      );
+      return;
+    }
+
+    final delay = _deviceFeedbackRetryDelays[_deviceFeedbackRetryAttempt];
+    _deviceFeedbackRetryAttempt += 1;
+    _deviceFeedbackRetryTimer?.cancel();
+    _lastDeviceFeedbackSyncMessage =
+        '${result.message} Retrying silently in ${delay.inSeconds}s.';
+    debugPrint(
+      'Device feedback scheduling retry #$_deviceFeedbackRetryAttempt in ${delay.inSeconds}s',
+    );
+    _deviceFeedbackRetryTimer = Timer(delay, () {
+      _deviceFeedbackRetryTimer = null;
+      if (!isDeviceFeedbackEnabled || isDeviceFeedbackUploadInProgress) {
+        debugPrint('Device feedback retry skipped: service not ready');
+        return;
+      }
+      debugPrint(
+        'Device feedback executing retry #$_deviceFeedbackRetryAttempt',
+      );
+      unawaited(uploadDeviceFeedbackReport());
+    });
+  }
+
+  bool _shouldRetryDeviceFeedback(String message) {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('missing picoclaw_') ||
+        normalized.contains('provider is disabled') ||
+        normalized.contains('projectid is empty') ||
+        normalized.contains('apikey is empty') ||
+        normalized.contains('appid is empty') ||
+        normalized.contains('messagingsenderid is empty') ||
+        normalized.contains('appkey is empty') ||
+        normalized.contains('not supported on this platform') ||
+        normalized.contains('only supported on android')) {
+      return false;
+    }
+    return true;
+  }
+
+  void _resetDeviceFeedbackRetryState({bool notify = true}) {
+    _deviceFeedbackRetryTimer?.cancel();
+    _deviceFeedbackRetryTimer = null;
+    _deviceFeedbackRetryAttempt = 0;
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, String>> getFirebaseDeviceInfo() {
+    return getDeviceFeedbackDeviceInfo();
+  }
+
+  Future<bool> isFirebaseUploadAllowed() {
+    return isDeviceFeedbackAllowed();
+  }
+
+  Future<bool> shouldAskForFirebaseUpload() {
+    return shouldAskForDeviceFeedbackUpload();
+  }
+
+  Future<bool> shouldAutoUploadFirebaseDeviceReport() {
+    return shouldAutoUploadDeviceFeedbackReport();
+  }
+
+  Future<void> setFirebaseUploadAllowed(bool allowed) {
+    return setDeviceFeedbackUploadAllowed(allowed);
+  }
+
+  Future<DeviceFeedbackUploadResult> uploadFirebaseDeviceReport() {
+    return uploadDeviceFeedbackReport();
+  }
+
   Future<void> updateConfig(
     String host,
     int port, {
@@ -229,8 +600,6 @@ class ServiceManager extends ChangeNotifier {
   }) async {
     _host = host;
     _port = port;
-    // On Windows and Android prefer the built-in `app/bin` layout and do not
-    // accept a custom binary path from callers.
     if (!(Platform.isWindows || Platform.isAndroid)) {
       if (binaryPath != null) _binaryPath = binaryPath;
     }
@@ -248,7 +617,6 @@ class ServiceManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Validate the configured or provided binary path via adapter.
   Future<bool> validateBinary([String? path]) async {
     String? checkPath;
     if (path != null && path.isNotEmpty) {
@@ -269,18 +637,15 @@ class ServiceManager extends ChangeNotifier {
   void _addLog(String log) {
     if (log.isEmpty) return;
 
-    // Split combined logs to prevent UI stutter from single large text blocks
     final lines = log.split(RegExp(r'[\r\n]+')).where((l) => l.isNotEmpty);
     _pendingLogs.addAll(lines.map((l) => l.trim()));
 
-    // Throttled notification: notify at most every 100ms
     if (_notifyTimer == null || !_notifyTimer!.isActive) {
       _notifyTimer = Timer(const Duration(milliseconds: 100), () {
         if (_pendingLogs.isNotEmpty) {
           _logs.addAll(_pendingLogs);
           _pendingLogs.clear();
 
-          // Keep memory footprint low (max 500 log entries)
           if (_logs.length > 500) {
             _logs.removeRange(0, _logs.length - 500);
           }
@@ -296,20 +661,15 @@ class ServiceManager extends ChangeNotifier {
     _status = ServiceStatus.starting;
     notifyListeners();
 
-    // 构建启动参数
-    // 公共模式开启时：添加 -public，服务监听所有接口
-    // 公共模式关闭时：不传 -public，服务仅监听本地接口（默认行为）
     String launchArgs = _arguments;
     if (_publicMode && !launchArgs.contains('-public')) {
       launchArgs = launchArgs.isEmpty ? '-public' : '$launchArgs -public';
     }
 
-    // Android: 通过 MethodChannel 启动原生前台服务
     if (Platform.isAndroid) {
       try {
         final ok = await _adapter.startService(port: _port, args: launchArgs);
         _addLog('Starting PicoClaw native service...');
-        // delay sync to wait for service start
         Future.delayed(const Duration(seconds: 2), () {
           _syncAndroidServiceStatus();
         });
@@ -326,7 +686,6 @@ class ServiceManager extends ChangeNotifier {
       return;
     }
 
-    // Desktop: delegate lifecycle to adapter
     try {
       final ok = await _adapter.startService(port: _port, args: launchArgs);
       if (ok) {
@@ -346,7 +705,6 @@ class ServiceManager extends ChangeNotifier {
   }
 
   Future<void> stop() async {
-    // Android: 通过 MethodChannel 停止原生服务
     if (Platform.isAndroid) {
       try {
         await _adapter.stopService();
@@ -359,7 +717,6 @@ class ServiceManager extends ChangeNotifier {
       return;
     }
 
-    // Desktop
     try {
       await _adapter.stopService();
       _status = ServiceStatus.stopped;

@@ -62,6 +62,9 @@ Future<void> main(List<String> args) async {
   final archOverride = (results['arch'] as String).trim();
   final skipBuild = results['skip-build'] as bool;
   final buildMode = (results['build-mode'] as String).trim();
+  final extraFlutterBuildArgs = _parseExtraArgs(
+    Platform.environment['PICOCLAW_FLUTTER_BUILD_ARGS'] ?? '',
+  );
 
   // If no token option provided, fallback to environment variable
   if (token.isEmpty) {
@@ -89,6 +92,11 @@ Future<void> main(List<String> args) async {
   stdout.writeln(
     'Repo: $repo  Tag: $tag  Host: $hostPlatform/$hostArch  Target: $selectedPlatform/$arch',
   );
+  if (extraFlutterBuildArgs.isNotEmpty) {
+    stdout.writeln(
+      'Using extra flutter build args from PICOCLAW_FLUTTER_BUILD_ARGS: ${extraFlutterBuildArgs.join(' ')}',
+    );
+  }
 
   // If user requested a specific target platform, require explicit arch too.
   if (targetPlatformArg.isNotEmpty && archOverride.isEmpty) {
@@ -127,6 +135,9 @@ Future<void> main(List<String> args) async {
     } else {
       buildArgs = ['build', t, '--$buildMode'];
       allBuilds.add(buildArgs);
+    }
+    for (final b in allBuilds) {
+      b.addAll(extraFlutterBuildArgs);
     }
     stdout.writeln('Planned build steps:');
     for (final b in allBuilds) {
@@ -451,7 +462,9 @@ Future<void> main(List<String> args) async {
             .where((d) => d.path.toLowerCase().endsWith('.app'))
             .toList();
         if (apps.isEmpty) {
-          throw Exception('No .app found under install destination: ${instDir.path}');
+          throw Exception(
+            'No .app found under install destination: ${instDir.path}',
+          );
         }
 
         final app = apps.first;
@@ -464,8 +477,7 @@ Future<void> main(List<String> args) async {
           final src = File(
             '${outDir.endsWith(Platform.pathSeparator) ? outDir : outDir + Platform.pathSeparator}$n',
           );
-          final targetPath =
-              '${macosBinDir.path}${Platform.pathSeparator}$n';
+          final targetPath = '${macosBinDir.path}${Platform.pathSeparator}$n';
           if (await src.exists()) {
             await src.copy(targetPath);
             try {
@@ -482,9 +494,12 @@ Future<void> main(List<String> args) async {
         );
       } else {
         // Preserve the out-dir path (typically app/bin) inside the build output
-        final relativeOut =
-            outDir.replaceAll(RegExp(r'[\\/]+'), Platform.pathSeparator);
-        final targetDir = '${instDir.path}${Platform.pathSeparator}$relativeOut';
+        final relativeOut = outDir.replaceAll(
+          RegExp(r'[\\/]+'),
+          Platform.pathSeparator,
+        );
+        final targetDir =
+            '${instDir.path}${Platform.pathSeparator}$relativeOut';
         final td = Directory(targetDir);
         await td.create(recursive: true);
         // copy all installed names into the build output under the preserved out-dir
@@ -503,11 +518,9 @@ Future<void> main(List<String> args) async {
           }
         }
         // Also write version.txt next to installed binary for traceability
-        await File('${td.path}${Platform.pathSeparator}version.txt')
-            .writeAsString(
-          versionContents.toString().trim(),
-          flush: true,
-        );
+        await File(
+          '${td.path}${Platform.pathSeparator}version.txt',
+        ).writeAsString(versionContents.toString().trim(), flush: true);
         stdout.writeln(
           'Copied ${copiedNames.join(', ')} to build output: ${td.path}',
         );
@@ -542,6 +555,12 @@ Future<void> main(List<String> args) async {
   }
 
   await tmpDir.delete(recursive: true);
+}
+
+List<String> _parseExtraArgs(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return const [];
+  return trimmed.split(RegExp(r'\s+')).where((arg) => arg.isNotEmpty).toList();
 }
 
 String detectPlatform() {

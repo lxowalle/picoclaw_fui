@@ -7,6 +7,14 @@ permissions:
   contents: write
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PICOCLAW_FLUTTER_BUILD_ARGS: >-
+    --dart-define=PICOCLAW_ANALYTICS_PROVIDER=firebase
+    --dart-define=PICOCLAW_FIREBASE_APP_ID=${{ secrets.PICOCLAW_FIREBASE_APP_ID }}
+    --dart-define=PICOCLAW_FIREBASE_API_KEY=${{ secrets.PICOCLAW_FIREBASE_API_KEY }}
+    --dart-define=PICOCLAW_FIREBASE_PROJECT_ID=${{ secrets.PICOCLAW_FIREBASE_PROJECT_ID }}
+    --dart-define=PICOCLAW_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.PICOCLAW_FIREBASE_MESSAGING_SENDER_ID }}
+    --dart-define=PICOCLAW_UMENG_APP_KEY=${{ secrets.PICOCLAW_UMENG_APP_KEY }}
+    --dart-define=PICOCLAW_UMENG_CHANNEL=${{ secrets.PICOCLAW_UMENG_CHANNEL }}
 
 jobs:
   build-android:
@@ -64,10 +72,10 @@ jobs:
           yes | sdkmanager --licenses || true
 
       - name: Build Android App Bundle (AAB)
-        run: flutter build appbundle --release --target-platform android-arm,android-arm64
+        run: flutter build appbundle --release --target-platform android-arm,android-arm64 $PICOCLAW_FLUTTER_BUILD_ARGS
 
       - name: Build Android APK (debug, installable for testing)
-        run: flutter build apk --debug
+        run: flutter build apk --debug $PICOCLAW_FLUTTER_BUILD_ARGS
 
       - name: Prepare release metadata
         id: vars

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 /// PicoClaw 原生 MethodChannel 客户端。
 /// 仅在 Android 平台可用，用于与 Kotlin 原生服务层通信。
 class PicoClawChannel {
-  static const _channel = MethodChannel('io.picoclaw.client/picoclaw');
+  static const _channel = MethodChannel('com.sipeed.picoclaw/picoclaw');
 
   /// 启动 PicoClaw 前台服务
   static Future<bool> startService({int port = 18800, String args = ''}) async {
@@ -80,5 +80,37 @@ class PicoClawChannel {
   static Future<String> getPicoToken() async {
     final result = await _channel.invokeMethod<String>('getPicoToken');
     return result ?? '';
+  }
+
+  /// 获取安全的设备信息（避免敏感标识符）
+  static Future<Map<String, String>> getSafeDeviceInfo() async {
+    final result = await _channel.invokeMethod<Map>('getSafeDeviceInfo');
+    if (result == null) return const {};
+    return result.map(
+      (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+    );
+  }
+
+  static Future<bool> setUmengAnalyticsConsent(bool enabled) async {
+    final result = await _channel.invokeMethod<bool>(
+      'setUmengAnalyticsConsent',
+      {'enabled': enabled},
+    );
+    return result ?? false;
+  }
+
+  static Future<Map<String, dynamic>> uploadUmengDeviceReport(
+    Map<String, Object?> payload,
+  ) async {
+    final result = await _channel
+        .invokeMethod<Map>('uploadUmengDeviceReport', payload)
+        .timeout(const Duration(seconds: 8));
+    if (result == null) {
+      return const {
+        'success': false,
+        'message': 'No response from native Umeng bridge.',
+      };
+    }
+    return Map<String, dynamic>.from(result);
   }
 }

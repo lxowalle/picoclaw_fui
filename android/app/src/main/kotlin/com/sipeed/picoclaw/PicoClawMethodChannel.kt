@@ -1,12 +1,12 @@
-package io.picoclaw.client
+package com.sipeed.picoclaw
 
 import android.content.Context
-import android.content.SharedPreferences
+import android.os.Build
 import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import io.picoclaw.client.service.PicoClawService
-import io.picoclaw.client.util.HealthChecker
+import com.sipeed.picoclaw.service.PicoClawService
+import com.sipeed.picoclaw.util.HealthChecker
 import java.io.File
 
 /**
@@ -30,7 +30,7 @@ class PicoClawMethodChannel(
 ) {
     companion object {
         private const val TAG = "PicoClawMethodChannel"
-        private const val CHANNEL_NAME = "io.picoclaw.client/picoclaw"
+        private const val CHANNEL_NAME = "com.sipeed.picoclaw/picoclaw"
         private const val PREF_NAME = "picoclaw_prefs"
         private const val KEY_AUTO_START = "auto_start"
     }
@@ -150,6 +150,40 @@ class PicoClawMethodChannel(
                 }
                 "getPicoToken" -> {
                     result.success(PicoClawService.PICO_TOKEN)
+                }
+                "getSafeDeviceInfo" -> {
+                    val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                    val deviceCategory = if (context.resources.configuration.smallestScreenWidthDp >= 600) {
+                        "Tablet"
+                    } else {
+                        "Mobile"
+                    }
+                    result.success(mapOf(
+                        "deviceModel" to listOf(Build.MANUFACTURER, Build.MODEL)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" ")
+                            .trim(),
+                        "osVersion" to "Android ${Build.VERSION.RELEASE}",
+                        "deviceCategory" to deviceCategory,
+                        "appVersion" to (packageInfo.versionName ?: "unknown")
+                    ))
+                }
+                "setUmengAnalyticsConsent" -> {
+                    try {
+                        val enabled = call.argument<Boolean>("enabled") ?: false
+                        AnalyticsReporter.submitConsent(context, enabled)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("SET_UMENG_CONSENT_FAILED", e.message, null)
+                    }
+                }
+                "uploadUmengDeviceReport" -> {
+                    try {
+                        val payload = call.arguments<Map<String, Any?>>() ?: emptyMap()
+                        result.success(AnalyticsReporter.uploadDeviceReport(context, payload))
+                    } catch (e: Exception) {
+                        result.error("UPLOAD_UMENG_REPORT_FAILED", e.message, null)
+                    }
                 }
                 "getWebPort" -> {
                     result.success(18800)

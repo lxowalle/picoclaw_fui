@@ -1,4 +1,4 @@
-package io.picoclaw.client
+package com.sipeed.picoclaw
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -14,6 +14,7 @@ class PicoClawApp : FlutterApplication() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        AnalyticsReporter.preInit(this)
     }
 
     private fun createNotificationChannel() {
