@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "io.picoclaw.client"
+    namespace = "com.sipeed.picoclaw"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
