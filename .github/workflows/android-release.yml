@@ -63,6 +63,24 @@ jobs:
         run: |
           yes | sdkmanager --licenses || true
 
+      - name: Setup Android Signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/keystore.jks
+            echo "KEYSTORE_PATH=android/app/keystore.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
+            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+            echo "Android signing configured"
+          else
+            echo "No signing configuration found, using debug signature"
+          fi
+
       - name: Build Android App Bundle (AAB)
         run: flutter build appbundle --release --target-platform android-arm,android-arm64
 
