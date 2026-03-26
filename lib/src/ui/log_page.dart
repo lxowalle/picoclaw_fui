@@ -206,8 +206,9 @@ class _LogPageState extends State<LogPage> {
       autofocus: true,
       showFocusGlow: false,
       focusBackgroundColor: Colors.transparent,
+      focusPadding: const EdgeInsets.symmetric(horizontal: 4),
       child: Container(
-        margin: const EdgeInsets.all(16),
+        margin: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(20),

@@ -28,6 +28,7 @@ class TVFocusable extends StatefulWidget {
   final Color? focusBackgroundColor;
   final bool showFocusGlow;
   final bool autofocus;
+  final EdgeInsetsGeometry? focusPadding;
 
   const TVFocusable({
     super.key,
@@ -40,6 +41,7 @@ class TVFocusable extends StatefulWidget {
     this.focusBackgroundColor,
     this.showFocusGlow = true,
     this.autofocus = false,
+    this.focusPadding,
   });
 
   @override
@@ -84,6 +86,7 @@ class _TVFocusableState extends State<TVFocusable> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
+          margin: _isFocused ? widget.focusPadding : EdgeInsets.zero,
           decoration: BoxDecoration(
             borderRadius: widget.borderRadius ?? BorderRadius.circular(12),
             color: _isFocused ? bgColor : null,

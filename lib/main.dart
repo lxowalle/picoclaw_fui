@@ -259,7 +259,7 @@ class _MainShellState extends State<MainShell>
     required ColorScheme colorScheme,
   }) {
     final isSelected = _selectedIndex == index;
-    final iconSize = isSelected ? 26.0 : 24.0;
+    final iconSize = isSelected ? 28.0 : 24.0;
 
     // 使用与导航栏背景色(primary)形成高对比的颜色
     // 选中时使用 primaryContainer（通常是浅色）作为背景，与导航栏深色形成强对比
@@ -271,16 +271,16 @@ class _MainShellState extends State<MainShell>
     return TVFocusable(
       autofocus: index == 0,
       onTap: () => setState(() => _selectedIndex = index),
-      borderRadius: BorderRadius.circular(30),
+      borderRadius: BorderRadius.circular(10),
       focusBorderWidth: 2.5,
-      focusBorderColor: colorScheme.secondary,
+      focusBorderColor: colorScheme.onSurface,
       focusBackgroundColor: colorScheme.secondary.withAlpha(31),
       child: Container(
         width: 48,
         height: 48,
         decoration: BoxDecoration(
           color: isSelected ? selectedBgColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(10),
           boxShadow: isSelected
               ? [
                   BoxShadow(
