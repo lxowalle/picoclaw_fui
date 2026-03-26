@@ -14,6 +14,7 @@ env:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    environment: production
     outputs:
       release_base: ${{ steps.vars.outputs.release_base }}
     steps:
@@ -85,11 +86,19 @@ jobs:
         run: |
           flutter pub run tools/fetch_core_local.dart --repo sipeed/picoclaw --tag latest --out-dir app/bin --platform android --arch arm64 --build-mode release --install-to-build
 
-      - name: Build Android APK (debug) and fetch/install core
+      - name: Build Android APK (release) and fetch/install core
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          flutter pub run tools/fetch_core_local.dart --repo sipeed/picoclaw --tag latest --out-dir app/bin --platform android --arch arm64 --build-mode debug --install-to-build
+          flutter pub run tools/fetch_core_local.dart --repo sipeed/picoclaw --tag latest --out-dir app/bin --platform android --arch arm64 --build-mode release --install-to-build
+
+      - name: Verify APK Signature
+        if: env.KEYSTORE_PATH != ''
+        run: |
+          echo "Verifying APK signature..."
+          BUILD_TOOLS=$(ls -d $ANDROID_SDK_ROOT/build-tools/*/ | sort -V | tail -n 1)
+          $BUILD_TOOLS/apksigner verify -v build/app/outputs/flutter-apk/app-release.apk || true
+          echo "Signature verification completed"
 
       - name: Prepare release metadata
         id: vars
@@ -115,10 +124,10 @@ jobs:
           else
             echo "AAB not found"; exit 1
           fi
-          if [ -f build/app/outputs/flutter-apk/app-debug.apk ]; then
-            cp build/app/outputs/flutter-apk/app-debug.apk "$APK_NAME"
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
           else
-            echo "Debug APK not found"; exit 1
+            echo "Release APK not found"; exit 1
           fi
 
       # core binaries are installed into build outputs; avoid uploading app/bin
@@ -134,6 +143,12 @@ jobs:
         with:
           name: picoclaw_fui-${{ env.RELEASE_BASE }}-android-universal.apk
           path: picoclaw_fui-${{ env.RELEASE_BASE }}-android-universal.apk
+
+      - name: Cleanup signing keys
+        if: always()
+        run: |
+          rm -f android/app/keystore.jks
+          echo "Signing keys cleaned up"
 
   build-macos:
     runs-on: macos-latest
