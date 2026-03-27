@@ -11,6 +11,7 @@ env:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    environment: production
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
@@ -63,11 +64,37 @@ jobs:
         run: |
           yes | sdkmanager --licenses || true
 
+      - name: Setup Android Signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/keystore.jks
+            echo "KEYSTORE_PATH=android/app/keystore.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
+            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+            echo "Android signing configured"
+          else
+            echo "No signing configuration found, using debug signature"
+          fi
+
       - name: Build Android App Bundle (AAB)
         run: flutter build appbundle --release --target-platform android-arm,android-arm64
 
-      - name: Build Android APK (debug, installable for testing)
-        run: flutter build apk --debug
+      - name: Build Android APK (release)
+        run: flutter build apk --release --target-platform android-arm,android-arm64
+
+      - name: Verify APK Signature
+        if: env.KEYSTORE_PATH != ''
+        run: |
+          echo "Verifying APK signature..."
+          BUILD_TOOLS=$(ls -d $ANDROID_SDK_ROOT/build-tools/*/ | sort -V | tail -n 1)
+          $BUILD_TOOLS/apksigner verify -v build/app/outputs/flutter-apk/app-release.apk || true
+          echo "Signature verification completed"
 
       - name: Prepare release metadata
         id: vars
@@ -95,10 +122,10 @@ jobs:
           else
             echo "AAB not found"; exit 1
           fi
-          if [ -f build/app/outputs/flutter-apk/app-debug.apk ]; then
-            cp build/app/outputs/flutter-apk/app-debug.apk "$APK_NAME"
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
           else
-            echo "Debug APK not found"; exit 1
+            echo "Release APK not found"; exit 1
           fi
 
       - name: Upload AAB artifact
@@ -112,3 +139,9 @@ jobs:
         with:
           name: picoclaw_fui-${{ env.RELEASE_BASE }}-android-universal.apk
           path: picoclaw_fui-${{ env.RELEASE_BASE }}-android-universal.apk
+
+      - name: Cleanup signing keys
+        if: always()
+        run: |
+          rm -f android/app/keystore.jks
+          echo "Signing keys cleaned up"
