@@ -258,12 +258,19 @@ jobs:
           if (-not (Get-Command nuget -ErrorAction SilentlyContinue)) { choco install nuget.commandline -y }
           nuget help
 
-      - name: Build Windows release (build + fetch/install core)
+      - name: Fetch Windows core binaries
         shell: powershell
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           flutter pub run tools/fetch_core_local.dart --repo sipeed/picoclaw --tag latest --out-dir app/bin --platform windows --arch x86_64 --build-mode release --install-to-build
+
+      - name: Build Windows release (build + fetch/install core)
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          flutter build windows --release
 
       - name: Prepare release metadata
         id: vars
