@@ -14,7 +14,7 @@ Future<void> main(List<String> args) async {
     ..addOption('tag', abbr: 't', defaultsTo: 'latest')
     ..addOption('out-dir', defaultsTo: 'app/bin')
     ..addOption('dest', defaultsTo: '')
-    ..addFlag('install-to-build', defaultsTo: false)
+    ..addFlag('install-to-build', defaultsTo: true)
     ..addOption('pack-cmd', defaultsTo: '')
     ..addOption('platform', defaultsTo: '')
     ..addOption('arch', defaultsTo: '')
@@ -203,8 +203,10 @@ Future<void> main(List<String> args) async {
 
   assetUrl ??= await resolveAssetUrl(repo, tag, assetName, token);
   if (assetUrl == null) {
-    stderr.writeln('Could not resolve asset URL');
-    exit(4);
+    stderr.writeln(
+      'Failed to resolve download URL for selected asset: $assetName',
+    );
+    exit(3);
   }
 
   stdout.writeln('Selected asset: $assetName');
@@ -273,9 +275,7 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  // Find executables: prefer the launcher (picoclaw-launcher) but also
-  // extract the core `picoclaw` binary if present. We will copy both into
-  // the outDir so packaging includes the launcher and the core binary.
+  // Find executables
   File? foundLauncher;
   File? foundCore;
   File? fallbackExecutable;
@@ -310,10 +310,11 @@ Future<void> main(List<String> args) async {
       foundCore == null &&
       fallbackExecutable == null) {
     stderr.writeln('Could not locate an executable in the archive');
+    await tmpDir.delete(recursive: true);
     exit(5);
   }
 
-  // Copy files: prefer to copy launcher and core if present, otherwise copy the first executable found.
+  // Copy files to out-dir
   final copiedNames = <String>[];
   Future<void> copyIfPresent(File? src) async {
     if (src == null) return;
@@ -356,105 +357,140 @@ Future<void> main(List<String> args) async {
     'Installed ${copiedNames.join(', ')} to $outDir and wrote version.txt ($assetName)',
   );
 
-  // Optionally install into a build output directory
+  // Optionally install into a build output directory (also copy to Debug counterpart)
   String? installDest;
   if (destOverride.isNotEmpty) {
     installDest = destOverride;
   } else if (installToBuild) {
-    if (Platform.isWindows) {
-      // CI packages Windows at build/windows/x64/runner/Release, so install there
+    if (selectedPlatform == 'Windows') {
       installDest =
           'build${Platform.pathSeparator}windows${Platform.pathSeparator}x64${Platform.pathSeparator}runner${Platform.pathSeparator}Release';
-    } else if (Platform.isMacOS) {
+    } else if (selectedPlatform == 'Darwin') {
       installDest =
           'build${Platform.pathSeparator}macos${Platform.pathSeparator}Build${Platform.pathSeparator}Products${Platform.pathSeparator}Release';
-    } else if (Platform.isLinux) {
+    } else if (selectedPlatform == 'Linux') {
       installDest =
           'build${Platform.pathSeparator}linux${Platform.pathSeparator}x64${Platform.pathSeparator}release${Platform.pathSeparator}bundle';
     }
   }
 
   if (installDest != null && installDest.isNotEmpty) {
-    try {
-      final instDir = Directory(installDest);
-      await instDir.create(recursive: true);
-      if (Platform.isMacOS) {
-        // For macOS desktop, ensure core binaries are bundled inside the .app so
-        // runtime resolution (Contents/MacOS/bin) works when distributed.
-        final apps = instDir
-            .listSync()
-            .whereType<Directory>()
-            .where((d) => d.path.toLowerCase().endsWith('.app'))
-            .toList();
-        if (apps.isEmpty) {
-          throw Exception(
-            'No .app found under install destination: ${instDir.path}',
-          );
-        }
+    final installTargets = <String>[];
+    installTargets.add(installDest);
 
-        final app = apps.first;
-        final macosBinDir = Directory(
-          '${app.path}${Platform.pathSeparator}Contents${Platform.pathSeparator}MacOS${Platform.pathSeparator}bin',
-        );
-        await macosBinDir.create(recursive: true);
-
-        for (final n in copiedNames) {
-          final src = File(
-            '${outDir.endsWith(Platform.pathSeparator) ? outDir : outDir + Platform.pathSeparator}$n',
-          );
-          final targetPath = '${macosBinDir.path}${Platform.pathSeparator}$n';
-          if (await src.exists()) {
-            await src.copy(targetPath);
-            try {
-              await Process.run('chmod', ['+x', targetPath]);
-            } catch (_) {}
-          }
-        }
-
-        await File(
-          '${macosBinDir.path}${Platform.pathSeparator}version.txt',
-        ).writeAsString(versionContents.toString().trim(), flush: true);
-        stdout.writeln(
-          'Copied ${copiedNames.join(', ')} into app bundle: ${macosBinDir.path}',
-        );
+    String? debugDest;
+    if (destOverride.isNotEmpty) {
+      if (installDest.contains('Release')) {
+        debugDest = installDest.replaceFirst('Release', 'Debug');
+      } else if (installDest.contains('release')) {
+        debugDest = installDest.replaceFirst('release', 'debug');
       } else {
-        // Preserve the out-dir path (typically app/bin) inside the build output
-        final relativeOut = outDir.replaceAll(
-          RegExp(r'[\\/]+'),
-          Platform.pathSeparator,
-        );
-        final targetDir =
-            '${instDir.path}${Platform.pathSeparator}$relativeOut';
-        final td = Directory(targetDir);
-        await td.create(recursive: true);
-        // copy all installed names into the build output under the preserved out-dir
-        for (final n in copiedNames) {
-          final src = File(
-            '${outDir.endsWith(Platform.pathSeparator) ? outDir : outDir + Platform.pathSeparator}$n',
+        debugDest = installDest + Platform.pathSeparator + 'debug';
+      }
+    } else if (installToBuild) {
+      if (selectedPlatform == 'Windows') {
+        debugDest =
+            'build${Platform.pathSeparator}windows${Platform.pathSeparator}x64${Platform.pathSeparator}runner${Platform.pathSeparator}Debug';
+      } else if (selectedPlatform == 'Darwin') {
+        debugDest =
+            'build${Platform.pathSeparator}macos${Platform.pathSeparator}Build${Platform.pathSeparator}Products${Platform.pathSeparator}Debug';
+      } else if (selectedPlatform == 'Linux') {
+        debugDest =
+            'build${Platform.pathSeparator}linux${Platform.pathSeparator}x64${Platform.pathSeparator}debug${Platform.pathSeparator}bundle';
+      }
+    }
+
+    if (debugDest != null && debugDest.isNotEmpty && debugDest != installDest) {
+      installTargets.add(debugDest);
+    }
+
+    try {
+      for (final target in installTargets) {
+        final instDir = Directory(target);
+        await instDir.create(recursive: true);
+        if (Platform.isMacOS) {
+          final apps = instDir
+              .listSync()
+              .whereType<Directory>()
+              .where((d) => d.path.toLowerCase().endsWith('.app'))
+              .toList();
+          if (apps.isEmpty) {
+            throw Exception(
+              'No .app found under install destination: ${instDir.path}',
+            );
+          }
+
+          final app = apps.first;
+          final macosBinDir = Directory(
+            '${app.path}${Platform.pathSeparator}Contents${Platform.pathSeparator}MacOS${Platform.pathSeparator}bin',
           );
-          final targetPath = '$targetDir${Platform.pathSeparator}$n';
-          if (await src.exists()) {
-            await src.copy(targetPath);
-            if (!Platform.isWindows) {
+          await macosBinDir.create(recursive: true);
+
+          for (final n in copiedNames) {
+            final src = File(
+              '${outDir.endsWith(Platform.pathSeparator) ? outDir : outDir + Platform.pathSeparator}$n',
+            );
+            final targetPath = '${macosBinDir.path}${Platform.pathSeparator}$n';
+            if (await src.exists()) {
+              await src.copy(targetPath);
               try {
                 await Process.run('chmod', ['+x', targetPath]);
               } catch (_) {}
             }
           }
+
+          await File(
+            '${macosBinDir.path}${Platform.pathSeparator}version.txt',
+          ).writeAsString(versionContents.toString().trim(), flush: true);
+          stdout.writeln(
+            'Copied ${copiedNames.join(', ')} into app bundle: ${macosBinDir.path}',
+          );
+        } else {
+          final relativeOut = outDir.replaceAll(
+            RegExp(r'[\\/]+'),
+            Platform.pathSeparator,
+          );
+          final targetDir =
+              '${instDir.path}${Platform.pathSeparator}$relativeOut';
+          final td = Directory(targetDir);
+          await td.create(recursive: true);
+          for (final n in copiedNames) {
+            final src = File(
+              '${outDir.endsWith(Platform.pathSeparator) ? outDir : outDir + Platform.pathSeparator}$n',
+            );
+            final targetPath = '$targetDir${Platform.pathSeparator}$n';
+            if (await src.exists()) {
+              await src.copy(targetPath);
+              if (!Platform.isWindows) {
+                try {
+                  await Process.run('chmod', ['+x', targetPath]);
+                } catch (_) {}
+              }
+            }
+          }
+          await File(
+            '${td.path}${Platform.pathSeparator}version.txt',
+          ).writeAsString(versionContents.toString().trim(), flush: true);
+          stdout.writeln(
+            'Copied ${copiedNames.join(', ')} to build output: ${td.path}',
+          );
         }
-        // Also write version.txt next to installed binary for traceability
-        await File(
-          '${td.path}${Platform.pathSeparator}version.txt',
-        ).writeAsString(versionContents.toString().trim(), flush: true);
-        stdout.writeln(
-          'Copied ${copiedNames.join(', ')} to build output: ${td.path}',
-        );
       }
     } catch (e) {
-      stderr.writeln('Failed to copy to install target $installDest: $e');
+      stderr.writeln(
+        'Failed to copy to install target(s) ${installTargets.join(', ')}: $e',
+      );
+      try {
+        if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
+      } catch (_) {}
       exit(6);
     }
   }
+
+  // Clean up temporary directory if it still exists.
+  try {
+    if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
+  } catch (_) {}
 
   // Optionally run a packager command (e.g., NSIS, codesign, dmg creation)
   if (packCmd.isNotEmpty) {
@@ -479,7 +515,10 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  await tmpDir.delete(recursive: true);
+  // Ensure temporary directory is removed (guarded, as it may have been removed earlier).
+  try {
+    if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
+  } catch (_) {}
 }
 
 String detectPlatform() {
