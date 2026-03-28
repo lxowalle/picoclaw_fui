@@ -341,26 +341,13 @@ class ServiceManager extends ChangeNotifier {
   }
 
   Future<void> stop() async {
-    // Android: 通过 MethodChannel 停止原生服务
-    if (Platform.isAndroid) {
-      try {
-        await _adapter.stopService();
-        _status = ServiceStatus.stopped;
-        _addLog('Stopping PicoClaw native service...');
-        notifyListeners();
-      } catch (e) {
-        _addLog('Failed to stop native service: $e');
-      }
-      return;
-    }
-
-    // Desktop
     try {
       await _adapter.stopService();
       _status = ServiceStatus.stopped;
+      _addLog('Stopping PicoClaw native service...');
       notifyListeners();
     } catch (e) {
-      _addLog('Failed to stop service: $e');
+      _addLog('Failed to stop native service: $e');
     }
   }
 
