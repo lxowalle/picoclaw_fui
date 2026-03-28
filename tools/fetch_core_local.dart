@@ -231,7 +231,9 @@ Future<void> main(List<String> args) async {
     stdout.writeln(
       ' - Install to build output (if enabled): $plannedInstallDest',
     );
-    if (packCmd.isNotEmpty) stdout.writeln(' - Pack command: $packCmd');
+    if (packCmd.isNotEmpty) {
+      stdout.writeln(' - Pack command: $packCmd');
+    }
     stdout.writeln('Dry run - exiting');
     exit(0);
   }
@@ -239,71 +241,42 @@ Future<void> main(List<String> args) async {
   // Download, extract, find executables, copy to out-dir, and (optionally)
   // install into build outputs. These steps are encapsulated in helper
   // functions added below.
-  ExtractResult? er;
-  try {
-    // Extract directly into `outDir` to avoid using a separate temporary
-    // extraction directory; this mirrors the previous behavior that worked
-    // around Windows file-locking in many environments.
-    er = await downloadAndExtract(
-      assetUrl,
-      assetName,
-      token,
-      extractTo: outDir,
-    );
-    final execs = await findExecutables(er.extractDir);
-    if (execs.launcher == null &&
-        execs.core == null &&
-        execs.fallback == null) {
-      stderr.writeln('Could not locate an executable in the archive');
-      try {
-        if (er?.usedTmp == true && er?.tmpDir != null) {
-          final tmpDirRef = er!.tmpDir!;
-          if (await tmpDirRef.exists()) await tmpDirRef.delete(recursive: true);
-        }
-      } catch (_) {}
-      exit(5);
-    }
+  late ExtractResult er;
+  // Extract directly into `outDir` to avoid using a separate temporary
+  // extraction directory; this mirrors the previous behavior that worked
+  // around Windows file-locking in many environments.
+  er = await downloadAndExtract(assetUrl, assetName, token, extractTo: outDir);
+  final execs = await findExecutables(er.extractDir);
+  if (execs.launcher == null && execs.core == null && execs.fallback == null) {
+    stderr.writeln('Could not locate an executable in the archive');
+    exit(5);
+  }
 
-    final copyRes = await copyToOutDir(outDir, execs, assetName);
-    stdout.writeln(
-      'Installed ${copyRes.copiedNames.join(', ')} to $outDir and wrote version.txt ($assetName)',
-    );
+  final copyRes = await copyToOutDir(outDir, execs, assetName);
+  stdout.writeln(
+    'Installed ${copyRes.copiedNames.join(', ')} to $outDir and wrote version.txt ($assetName)',
+  );
 
-    final installTargets = computeInstallTargets(
-      selectedPlatform,
-      destOverride,
-      installToBuild,
-    );
-    if (installTargets.isNotEmpty) {
-      try {
-        await installToBuildOutputs(
-          installTargets,
-          selectedPlatform,
-          outDir,
-          copyRes.copiedNames,
-          copyRes.versionText,
-        );
-      } catch (e) {
-        stderr.writeln(
-          'Failed to copy to install target(s) ${installTargets.join(', ')}: $e',
-        );
-        try {
-          if (er?.usedTmp == true && er?.tmpDir != null) {
-            final tmpDirRef = er!.tmpDir!;
-            if (await tmpDirRef.exists())
-              await tmpDirRef.delete(recursive: true);
-          }
-        } catch (_) {}
-        exit(6);
-      }
-    }
-  } finally {
+  final installTargets = computeInstallTargets(
+    selectedPlatform,
+    destOverride,
+    installToBuild,
+  );
+  if (installTargets.isNotEmpty) {
     try {
-      if (er?.usedTmp == true && er?.tmpDir != null) {
-        final tmpDirRef = er!.tmpDir!;
-        if (await tmpDirRef.exists()) await tmpDirRef.delete(recursive: true);
-      }
-    } catch (_) {}
+      await installToBuildOutputs(
+        installTargets,
+        selectedPlatform,
+        outDir,
+        copyRes.copiedNames,
+        copyRes.versionText,
+      );
+    } catch (e) {
+      stderr.writeln(
+        'Failed to copy to install target(s) ${installTargets.join(', ')}: $e',
+      );
+      exit(6);
+    }
   }
 
   // Optionally run a packager command (e.g., NSIS, codesign, dmg creation)
@@ -329,7 +302,7 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  // Temporary directory already cleaned up in the extraction/install flow.
+  // No temporary directories are used; extraction writes directly to `outDir`.
 }
 
 String detectPlatform() {
@@ -514,10 +487,8 @@ Future<String?> resolveAssetUrl(
 
 // Result of downloading and extracting an archive
 class ExtractResult {
-  final Directory? tmpDir;
   final Directory extractDir;
-  final bool usedTmp;
-  ExtractResult(this.tmpDir, this.extractDir, this.usedTmp);
+  ExtractResult(this.extractDir);
 }
 
 // Located executable files inside an extracted archive
@@ -540,67 +511,27 @@ Future<ExtractResult> downloadAndExtract(
   String token, {
   String? extractTo,
 }) async {
-  // If an explicit extractTo directory is provided, avoid creating a
-  // temporary directory and download the archive into memory, then
-  // extract directly into `extractTo` to prevent using a separate temp
-  // extraction location (Windows file-locking issues).
-  if (extractTo != null && extractTo.isNotEmpty) {
-    stdout.writeln('Downloading $assetUrl');
-    final headers = <String, String>{};
-    if (token.isNotEmpty) headers['Authorization'] = 'token $token';
-    final resp = await http.get(Uri.parse(assetUrl), headers: headers);
-    if (resp.statusCode != 200) {
-      throw HttpException('Download failed: ${resp.statusCode}');
-    }
-    final bytes = resp.bodyBytes;
-
-    stdout.writeln('Extracting archive');
-    final extractDir = Directory(extractTo);
-    await extractDir.create(recursive: true);
-
-    if (assetName.toLowerCase().endsWith('.zip')) {
-      final archive = ZipDecoder().decodeBytes(bytes);
-      for (final file in archive) {
-        final filePath = '${extractDir.path}/${file.name}';
-        if (file.isFile) {
-          final out = File(filePath);
-          await out.create(recursive: true);
-          await out.writeAsBytes(file.content as List<int>);
-        } else {
-          await Directory(filePath).create(recursive: true);
-        }
-      }
-    } else {
-      final gunz = GZipDecoder().decodeBytes(bytes);
-      final tar = TarDecoder().decodeBytes(gunz);
-      for (final f in tar.files) {
-        final filePath = '${extractDir.path}/${f.name}';
-        if (f.isFile) {
-          final out = File(filePath);
-          await out.create(recursive: true);
-          await out.writeAsBytes(f.content as List<int>);
-        } else {
-          await Directory(filePath).create(recursive: true);
-        }
-      }
-    }
-
-    return ExtractResult(null, extractDir, false);
+  // Temporary directories are disabled: require an explicit `extractTo`.
+  if (extractTo == null || extractTo.isEmpty) {
+    throw ArgumentError(
+      'extractTo must be provided; temporary directories are disabled',
+    );
   }
 
-  // Fallback: use a temporary directory for extraction.
-  final tmpDir = await Directory.systemTemp.createTemp('fetch_core_local');
-  final archiveFile = File('${tmpDir.path}/asset');
-
   stdout.writeln('Downloading $assetUrl');
-  await downloadToFile(Uri.parse(assetUrl), archiveFile, token);
+  final headers = <String, String>{};
+  if (token.isNotEmpty) headers['Authorization'] = 'token $token';
+  final resp = await http.get(Uri.parse(assetUrl), headers: headers);
+  if (resp.statusCode != 200) {
+    throw HttpException('Download failed: ${resp.statusCode}');
+  }
+  final bytes = resp.bodyBytes;
 
   stdout.writeln('Extracting archive');
-  final extractDir = Directory('${tmpDir.path}/extract');
+  final extractDir = Directory(extractTo);
   await extractDir.create(recursive: true);
 
   if (assetName.toLowerCase().endsWith('.zip')) {
-    final bytes = await archiveFile.readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
     for (final file in archive) {
       final filePath = '${extractDir.path}/${file.name}';
@@ -613,7 +544,6 @@ Future<ExtractResult> downloadAndExtract(
       }
     }
   } else {
-    final bytes = await archiveFile.readAsBytes();
     final gunz = GZipDecoder().decodeBytes(bytes);
     final tar = TarDecoder().decodeBytes(gunz);
     for (final f in tar.files) {
@@ -628,7 +558,7 @@ Future<ExtractResult> downloadAndExtract(
     }
   }
 
-  return ExtractResult(tmpDir, extractDir, true);
+  return ExtractResult(extractDir);
 }
 
 Future<Executables> findExecutables(Directory extractDir) async {
@@ -703,17 +633,24 @@ Future<CopyResult> copyToOutDir(
     if (!Platform.isWindows) {
       try {
         final pr = await Process.run('chmod', ['+x', destFile.path]);
-        if (pr.exitCode != 0) stdout.writeln('chmod returned ${pr.stderr}');
+        if (pr.exitCode != 0) {
+          stdout.writeln('chmod returned ${pr.stderr}');
+        }
       } catch (_) {}
     }
 
     copiedNames.add(destName);
   }
 
-  if (execs.launcher != null) await copyIfPresent(execs.launcher);
-  if (execs.core != null) await copyIfPresent(execs.core);
-  if (copiedNames.isEmpty && execs.fallback != null)
+  if (execs.launcher != null) {
+    await copyIfPresent(execs.launcher);
+  }
+  if (execs.core != null) {
+    await copyIfPresent(execs.core);
+  }
+  if (copiedNames.isEmpty && execs.fallback != null) {
     await copyIfPresent(execs.fallback);
+  }
 
   final versionContents = StringBuffer();
   versionContents.writeln(assetName);
@@ -775,8 +712,9 @@ List<String> computeInstallTargets(
             'build${Platform.pathSeparator}linux${Platform.pathSeparator}x64${Platform.pathSeparator}debug${Platform.pathSeparator}bundle';
       }
     }
-    if (debugDest != null && debugDest.isNotEmpty && debugDest != installDest)
+    if (debugDest != null && debugDest.isNotEmpty && debugDest != installDest) {
       installTargets.add(debugDest);
+    }
   }
   return installTargets;
 }
