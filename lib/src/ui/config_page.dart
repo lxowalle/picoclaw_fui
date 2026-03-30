@@ -983,6 +983,7 @@ class DeviceFeedbackToggle extends StatefulWidget {
 
 class _DeviceFeedbackToggleState extends State<DeviceFeedbackToggle> {
   bool _isFocused = false;
+  bool _hasUserToggled = false;
 
   @override
   void initState() {
@@ -1004,6 +1005,15 @@ class _DeviceFeedbackToggleState extends State<DeviceFeedbackToggle> {
     }
   }
 
+  void _handleToggle() {
+    if (!_hasUserToggled) {
+      setState(() {
+        _hasUserToggled = true;
+      });
+    }
+    widget.onToggle();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -1021,31 +1031,27 @@ class _DeviceFeedbackToggleState extends State<DeviceFeedbackToggle> {
             return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.select ||
               event.logicalKey == LogicalKeyboardKey.enter) {
-            widget.onToggle();
+            _handleToggle();
             return KeyEventResult.handled;
           }
         }
         return KeyEventResult.ignored;
       },
       child: GestureDetector(
-        onTap: widget.onToggle,
+        onTap: _handleToggle,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: _isFocused
                 ? Theme.of(context).colorScheme.secondary.withAlpha(40)
-                : (widget.isAllowed
-                      ? Theme.of(context).colorScheme.secondary.withAlpha(15)
-                      : null),
+                : null,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _isFocused
                   ? Theme.of(context).colorScheme.secondary
-                  : (widget.isAllowed
-                        ? Theme.of(context).colorScheme.secondary
-                        : Theme.of(context).dividerColor),
-              width: _isFocused ? 2 : (widget.isAllowed ? 2 : 1),
+                  : Theme.of(context).dividerColor,
+              width: _isFocused ? 2 : 1,
             ),
             boxShadow: _isFocused
                 ? [
@@ -1065,14 +1071,14 @@ class _DeviceFeedbackToggleState extends State<DeviceFeedbackToggle> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: (widget.isAllowed || _isFocused)
+                  color: _isFocused
                       ? Theme.of(context).colorScheme.secondary.withAlpha(40)
                       : null,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   widget.isAllowed ? Icons.analytics : Icons.analytics_outlined,
-                  color: widget.isAllowed || _isFocused
+                  color: _isFocused
                       ? Theme.of(context).colorScheme.secondary
                       : Theme.of(context).colorScheme.onSurface.withAlpha(150),
                   size: 24,
@@ -1088,10 +1094,8 @@ class _DeviceFeedbackToggleState extends State<DeviceFeedbackToggle> {
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: _isFocused
                             ? Theme.of(context).colorScheme.secondary
-                            : (widget.isAllowed
-                                  ? Theme.of(context).colorScheme.secondary
-                                  : null),
-                        fontWeight: (_isFocused || widget.isAllowed)
+                            : null,
+                        fontWeight: _isFocused
                             ? FontWeight.bold
                             : FontWeight.normal,
                       ),
@@ -1125,7 +1129,7 @@ class _DeviceFeedbackToggleState extends State<DeviceFeedbackToggle> {
                       : Theme.of(context).colorScheme.secondary.withAlpha(100),
                 ),
                 child: AnimatedAlign(
-                  duration: const Duration(milliseconds: 200),
+                  duration: Duration(milliseconds: _hasUserToggled ? 200 : 0),
                   alignment: widget.isAllowed
                       ? Alignment.centerRight
                       : Alignment.centerLeft,

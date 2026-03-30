@@ -189,6 +189,12 @@ class ServiceManager extends ChangeNotifier {
       _adapter.setLogHandler(_addLog);
     } catch (_) {}
 
+    if (_deviceFeedbackProvider == DeviceFeedbackProvider.umeng) {
+      try {
+        await _umengReporter.ensureDefaultConsentApplied();
+      } catch (_) {}
+    }
+
     // 自动上报设备反馈（如果用户已同意且满足条件）
     unawaited(_autoUploadDeviceFeedbackIfNeeded());
 
@@ -293,17 +299,7 @@ class ServiceManager extends ChangeNotifier {
   }
 
   Future<bool> shouldAskForDeviceFeedbackUpload() async {
-    if (!isDeviceFeedbackEnabled) {
-      return false;
-    }
-    switch (_deviceFeedbackProvider) {
-      case DeviceFeedbackProvider.firebase:
-        return !(await _firebaseReporter.hasUploadConsentChoice());
-      case DeviceFeedbackProvider.umeng:
-        return !(await _umengReporter.hasUploadConsentChoice());
-      case DeviceFeedbackProvider.none:
-        return false;
-    }
+    return false;
   }
 
   Future<bool> shouldAutoUploadDeviceFeedbackReport() async {

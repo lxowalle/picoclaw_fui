@@ -61,9 +61,7 @@ object AnalyticsReporter {
         try {
             android.util.Log.d("AnalyticsReporter", "Performing Umeng SDK init on main thread...")
             
-            // 开启友盟调试日志，实时日志功能需要
-            UMConfigure.setLogEnabled(true)
-            android.util.Log.d("AnalyticsReporter", "Umeng debug logging enabled")
+            UMConfigure.setLogEnabled(false)
             
             UMConfigure.init(
                 context,
@@ -76,9 +74,7 @@ object AnalyticsReporter {
             MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.LEGACY_MANUAL)
             // 设置Session间隔时间为30秒，减少不必要的数据上报
             MobclickAgent.setSessionContinueMillis(30 * 1000)
-            // 开启实时调试模式（测试阶段使用）
-            MobclickAgent.setDebugMode(true)
-            android.util.Log.d("AnalyticsReporter", "Umeng debug mode enabled")
+            MobclickAgent.setDebugMode(false)
             
             umengInitialized = true
             initError = null
@@ -212,10 +208,6 @@ object AnalyticsReporter {
             )
             android.util.Log.d("AnalyticsReporter", "[2/3] MobclickAgent.onEventValue() called successfully")
             
-            // 额外发送一个简单事件作为对照
-            MobclickAgent.onEvent(context.applicationContext, "simple_test_event")
-            android.util.Log.d("AnalyticsReporter", "[BONUS] Sent simple event 'simple_test_event'")
-            
             // 触发友盟内部的数据上报（实时日志可能需要等待SDK自动上报）
             // 友盟SDK会在合适的时机自动上报，通常几秒到几分钟内
             MobclickAgent.onPause(context.applicationContext)
@@ -246,53 +238,5 @@ object AnalyticsReporter {
                 "message" to "Umeng SDK error: ${e.message ?: e.javaClass.simpleName}",
             )
         }
-    }
-    
-    /**
-     * 发送极简测试事件（无参数）
-     * 用于验证基本连接是否正常
-     */
-    fun sendMinimalTestEvent(context: Context): Map<String, Any> {
-        android.util.Log.d("AnalyticsReporter", "=== sendMinimalTestEvent START ===")
-        
-        if (!umengInitialized) {
-            return mapOf<String, Any>(
-                "success" to false,
-                "errorType" to "NOT_INITIALIZED",
-                "message" to "SDK not initialized",
-            )
-        }
-
-        return try {
-            // 发送一个无参数的简单事件
-            MobclickAgent.onEvent(context.applicationContext, "minimal_test_no_params")
-            android.util.Log.i("AnalyticsReporter", "Minimal test event sent successfully")
-
-            mapOf<String, Any>(
-                "success" to true,
-                "message" to "Minimal test event sent",
-            )
-        } catch (e: Exception) {
-            android.util.Log.e("AnalyticsReporter", "Failed to send minimal event: ${e.message}")
-            mapOf<String, Any>(
-                "success" to false,
-                "errorType" to "SDK_ERROR",
-                "message" to (e.message ?: "Unknown error"),
-            )
-        }
-    }
-    
-    /**
-     * 获取友盟SDK调试信息
-     */
-    fun getDebugInfo(): Map<String, Any> {
-        return mapOf<String, Any>(
-            "umengInitialized" to umengInitialized,
-            "umengAppKey" to (if (umengAppKey.isBlank()) "NOT_SET" else "${umengAppKey.take(4)}****"),
-            "umengChannel" to umengChannel,
-            "provider" to provider,
-            "isEnabled" to isUmengProviderEnabled(),
-            "initError" to (initError ?: "None"),
-        )
     }
 }
