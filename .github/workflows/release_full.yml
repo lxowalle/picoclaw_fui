@@ -125,9 +125,14 @@ jobs:
       - name: Prepare release metadata
         id: vars
         run: |
-          now=$(date -u +%y%m%d)
-          short=$(git rev-parse --short=6 $GITHUB_SHA)
-          base_no_prefix="$now-$short"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            base_no_prefix="${GITHUB_REF#refs/tags/}"
+            echo "Tag detected: $base_no_prefix"
+          else
+            now=$(date -u +%y%m%d)
+            short=$(git rev-parse --short=6 $GITHUB_SHA)
+            base_no_prefix="$now-$short"
+          fi
           release_tag="picoclaw_fui-$base_no_prefix"
           echo "release_base=$base_no_prefix" >> $GITHUB_OUTPUT
           echo "RELEASE_BASE=$base_no_prefix" >> $GITHUB_ENV
@@ -206,9 +211,14 @@ jobs:
       - name: Prepare release metadata
         id: vars
         run: |
-          now=$(date -u +%y%m%d)
-          short=$(git rev-parse --short=6 $GITHUB_SHA)
-          base_no_prefix="$now-$short"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            base_no_prefix="${GITHUB_REF#refs/tags/}"
+            echo "Tag detected: $base_no_prefix"
+          else
+            now=$(date -u +%y%m%d)
+            short=$(git rev-parse --short=6 $GITHUB_SHA)
+            base_no_prefix="$now-$short"
+          fi
           release_tag="picoclaw_fui-$base_no_prefix"
           echo "release_base=$base_no_prefix" >> $GITHUB_OUTPUT
           echo "RELEASE_BASE=$base_no_prefix" >> $GITHUB_ENV
@@ -301,9 +311,14 @@ jobs:
         id: vars
         shell: powershell
         run: |
-          $date = Get-Date -Format 'yyMMdd'
-          $short = git rev-parse --short=6 $env:GITHUB_SHA
-          $base_no_prefix = "$date-$short"
+          if ($env:GITHUB_REF -match '^refs/tags/v') {
+            $base_no_prefix = $env:GITHUB_REF -replace '^refs/tags/', ''
+            Write-Output "Tag detected: $base_no_prefix"
+          } else {
+            $date = Get-Date -Format 'yyMMdd'
+            $short = git rev-parse --short=6 $env:GITHUB_SHA
+            $base_no_prefix = "$date-$short"
+          }
           $release_tag = "picoclaw_fui-$base_no_prefix"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "release_base=$base_no_prefix"
           Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_BASE=$base_no_prefix"
@@ -349,25 +364,48 @@ jobs:
         id: install-nsis
         run: |
           Write-Output "Ensure NSIS is installed"
-          $nsisCmd = Get-Command makensis -ErrorAction SilentlyContinue
-          if (-not $nsisCmd) {
-            choco install nsis -y
-            $refresh = (Join-Path $env:ChocolateyInstall 'helpers\refreshenv.cmd')
-            if (Test-Path $refresh) { & $refresh } else { Start-Sleep -Seconds 2 }
-          }
           $nsisPath = $null
+
+          # Check if already installed
           $nsisCmd = Get-Command makensis -ErrorAction SilentlyContinue
           if ($nsisCmd) { $nsisPath = $nsisCmd.Path }
+
+          if (-not $nsisPath) {
+            # Try Chocolatey with retry
+            $chocoSuccess = $false
+            for ($i = 1; $i -le 3 -and -not $chocoSuccess; $i++) {
+              Write-Output "Attempting Chocolatey install (attempt $i/3)..."
+              choco install nsis -y --no-progress
+              if ($LASTEXITCODE -eq 0) { $chocoSuccess = $true }
+              else { Start-Sleep -Seconds 10 }
+            }
+
+            if (-not $chocoSuccess) {
+              Write-Output "Chocolatey failed, downloading NSIS directly..."
+              $nsisUrl = "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip"
+              $nsisZip = "$env:TEMP\nsis.zip"
+              $nsisDir = "$env:TEMP\nsis"
+              Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisZip -UseBasicParsing
+              Expand-Archive -Path $nsisZip -DestinationPath $nsisDir -Force
+              $env:PATH += ";$nsisDir\nsis-3.11"
+              Add-Content -Path $env:GITHUB_PATH -Value "$nsisDir\nsis-3.11"
+            }
+
+            $nsisCmd = Get-Command makensis -ErrorAction SilentlyContinue
+            if ($nsisCmd) { $nsisPath = $nsisCmd.Path }
+          }
+
           $candidates = @(
-            (Join-Path $env:ProgramFiles 'NSIS\\makensis.exe'),
-            (Join-Path ${env:ProgramFiles(x86)} 'NSIS\\makensis.exe'),
-            (Join-Path $env:ProgramData 'chocolatey\\bin\\makensis.exe'),
-            (Join-Path $env:ProgramData 'chocolatey\\lib\\nsis\\tools\\makensis.exe'),
-            (Join-Path $env:ChocolateyInstall 'bin\\makensis.exe')
+            (Join-Path $env:ProgramFiles 'NSIS\makensis.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'NSIS\makensis.exe'),
+            (Join-Path $env:ProgramData 'chocolatey\bin\makensis.exe'),
+            (Join-Path $env:ProgramData 'chocolatey\lib\nsis\tools\makensis.exe'),
+            (Join-Path $env:ChocolateyInstall 'bin\makensis.exe')
           )
           foreach ($p in $candidates) {
             if (-not $nsisPath -and (Test-Path $p)) { $nsisPath = $p; break }
           }
+
           if (-not $nsisPath) {
             Write-Error "makensis not found after installation. Checked: $($candidates -join ';')"
             exit 1
@@ -441,9 +479,14 @@ jobs:
       - name: Prepare release metadata
         id: vars
         run: |
-          now=$(date -u +%y%m%d)
-          short=$(git rev-parse --short=6 $GITHUB_SHA)
-          base_no_prefix="$now-$short"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            base_no_prefix="${GITHUB_REF#refs/tags/}"
+            echo "Tag detected: $base_no_prefix"
+          else
+            now=$(date -u +%y%m%d)
+            short=$(git rev-parse --short=6 $GITHUB_SHA)
+            base_no_prefix="$now-$short"
+          fi
           release_tag="picoclaw_fui-$base_no_prefix"
           echo "release_base=$base_no_prefix" >> $GITHUB_OUTPUT
           echo "RELEASE_BASE=$base_no_prefix" >> $GITHUB_ENV
