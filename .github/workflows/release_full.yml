@@ -177,7 +177,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           flutter pub run tools/fetch_core_local.dart --repo sipeed/picoclaw --tag latest --out-dir app/bin --platform macos --arch arm64 --build-mode release --install-to-build
-          flutter build macos --release --target-platform darwin-arm64
+          flutter build macos --release
 
       - name: Prepare release metadata
         id: vars
