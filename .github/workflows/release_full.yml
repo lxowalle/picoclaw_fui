@@ -497,6 +497,7 @@ jobs:
           set -e
           PKG_NAME=picoclaw_fui
           TAG=${RELEASE_BASE}
+          DEB_VERSION="${TAG#v}"
           DEST=${PKG_NAME}-${TAG}-linux-x86_64.deb
           PKGROOT=$PWD/pkg_root
           rm -rf "$PKGROOT" "$DEST"
@@ -548,7 +549,7 @@ jobs:
 
           printf '%s\n' \
             "Package: picoclaw-fui" \
-            "Version: ${TAG}" \
+            "Version: ${DEB_VERSION}" \
             "Section: utils" \
             "Priority: optional" \
             "Architecture: amd64" \
