@@ -2,12 +2,15 @@ package com.sipeed.picoclaw
 
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.sipeed.picoclaw.service.PicoClawService
 import com.sipeed.picoclaw.util.HealthChecker
 import java.io.File
+import java.util.concurrent.Executor
 
 /**
  * Flutter MethodChannel 桥接层，将 Kotlin 原生功能暴露给 Dart 端。
@@ -105,6 +108,13 @@ class PicoClawMethodChannel(
                 }
                 "checkHealth" -> {
                     Thread {
+                        val mainExecutor: Executor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            context.mainExecutor
+                        } else {
+                            val handler = Handler(Looper.getMainLooper())
+                            Executor { r -> handler.post(r) }
+                        }
+
                         try {
                             val status = healthChecker.check()
                             val resultMap = mapOf(
@@ -114,11 +124,11 @@ class PicoClawMethodChannel(
                                 "pid" to status.pid,
                                 "error" to (status.error ?: "")
                             )
-                            context.mainExecutor.execute {
+                            mainExecutor.execute {
                                 result.success(resultMap)
                             }
                         } catch (e: Exception) {
-                            context.mainExecutor.execute {
+                            mainExecutor.execute {
                                 result.error("HEALTH_CHECK_FAILED", e.message, null)
                             }
                         }
