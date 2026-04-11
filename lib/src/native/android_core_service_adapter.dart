@@ -93,4 +93,21 @@ class AndroidCoreServiceAdapter implements CoreServiceAdapter {
       return false;
     }
   }
+
+  @override
+  Future<String> getWorkspacePath() async {
+    try {
+      final result = await _channel.invokeMethod<String>('getHomePath');
+      return result ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  @override
+  Future<bool> setWorkspacePath(String path) async {
+    // Workspace is controlled by the native service via PICOCLAW_HOME env var.
+    // The GUI does not modify it.
+    return false;
+  }
 }

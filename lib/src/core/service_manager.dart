@@ -89,6 +89,7 @@ class ServiceManager extends ChangeNotifier {
   String _binaryPath = '';
   String _arguments = '';
   bool _publicMode = false;
+  String _workspacePath = '';
 
   int _nativePid = -1;
   String _healthStatus = '';
@@ -100,7 +101,7 @@ class ServiceManager extends ChangeNotifier {
   String get healthUptime => _healthUptime;
   bool get autoStart => _autoStart;
 
-  Timer? _androidPollingTimer;
+  Timer? _nativePollingTimer;
 
   AppThemeMode _currentThemeMode = AppThemeMode.carbon;
   AppThemeMode get currentThemeMode => _currentThemeMode;
@@ -117,6 +118,7 @@ class ServiceManager extends ChangeNotifier {
   String get binaryPath => _binaryPath;
   String get arguments => _arguments;
   bool get publicMode => _publicMode;
+  String get workspacePath => _workspacePath;
 
   Future<String?> getDeviceIpAddress() async {
     try {
@@ -180,9 +182,10 @@ class ServiceManager extends ChangeNotifier {
       _host = '127.0.0.1';
       try {
         _autoStart = await PicoClawChannel.getAutoStart();
-        await _syncAndroidServiceStatus();
+        _workspacePath = await _adapter.getWorkspacePath();
+        await _syncNativeServiceStatus();
       } catch (_) {}
-      _startAndroidPolling();
+      _startNativePolling();
     }
 
     try {
@@ -201,6 +204,15 @@ class ServiceManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> setWorkspacePath(String value) async {
+    final ok = await _adapter.setWorkspacePath(value);
+    if (ok) {
+      _workspacePath = value;
+      notifyListeners();
+    }
+    return ok;
+  }
+
   Future<void> _autoUploadDeviceFeedbackIfNeeded() async {
     try {
       final isAllowed = await isDeviceFeedbackAllowed();
@@ -214,7 +226,7 @@ class ServiceManager extends ChangeNotifier {
     }
   }
 
-  Future<void> _syncAndroidServiceStatus() async {
+  Future<void> _syncNativeServiceStatus() async {
     try {
       final status = await PicoClawChannel.getServiceStatus();
       final isRunning = status['isRunning'] as bool? ?? false;
@@ -253,11 +265,11 @@ class ServiceManager extends ChangeNotifier {
     }
   }
 
-  void _startAndroidPolling() {
-    _androidPollingTimer?.cancel();
-    _androidPollingTimer = Timer.periodic(
+  void _startNativePolling() {
+    _nativePollingTimer?.cancel();
+    _nativePollingTimer = Timer.periodic(
       const Duration(seconds: 3),
-      (_) => _syncAndroidServiceStatus(),
+      (_) => _syncNativeServiceStatus(),
     );
   }
 
@@ -605,7 +617,7 @@ class ServiceManager extends ChangeNotifier {
           // Android: keep original behavior — log and defer health check to native side
           _addLog('Starting PicoClaw native service...');
           Future.delayed(const Duration(seconds: 2), () {
-            _syncAndroidServiceStatus();
+            _syncNativeServiceStatus();
           });
         } else {
           // Desktop: consider service running immediately
@@ -638,7 +650,7 @@ class ServiceManager extends ChangeNotifier {
 
   @override
   void dispose() {
-    _androidPollingTimer?.cancel();
+    _nativePollingTimer?.cancel();
     super.dispose();
   }
 }

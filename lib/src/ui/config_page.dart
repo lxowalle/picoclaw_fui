@@ -214,6 +214,14 @@ class _ConfigPageState extends State<ConfigPage> {
             ),
             const SizedBox(height: 16),
 
+            Text(
+              l10n.address,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+            ),
+            const SizedBox(height: 8),
+
             // Host text field
             FocusableTextField(
               controller: _hostController,
@@ -225,6 +233,14 @@ class _ConfigPageState extends State<ConfigPage> {
               onSubmitted: _saveConfig,
             ),
             const SizedBox(height: 16),
+
+            Text(
+              l10n.port,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+            ),
+            const SizedBox(height: 8),
 
             // Port text field
             FocusableTextField(
@@ -366,6 +382,14 @@ class _ConfigPageState extends State<ConfigPage> {
               const SizedBox.shrink(),
             const SizedBox(height: 16),
 
+            Text(
+              l10n.arguments,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+            ),
+            const SizedBox(height: 8),
+
             // Arguments text field
             FocusableTextField(
               controller: _argsController,
@@ -378,6 +402,34 @@ class _ConfigPageState extends State<ConfigPage> {
                   : _portFocusNode,
               onSubmitted: _saveConfig,
             ),
+            if (Platform.isAndroid) ...[
+              const SizedBox(height: 16),
+              Text(
+                l10n.workspaceDirectory,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withAlpha(60),
+                  ),
+                ),
+                child: Text(
+                  service.workspacePath,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             if (service.isDeviceFeedbackEnabled)
