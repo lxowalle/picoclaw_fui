@@ -134,21 +134,22 @@ jobs:
       - name: Prepare release metadata
         id: vars
         run: |
+          now=$(date -u +%y%m%d)
+          short=$(git rev-parse --short=6 $GITHUB_SHA)
+          prefix="${{ inputs.release_prefix || 'picoclaw_fui' }}"
           if [[ "${{ inputs.use_fixed_tag }}" == "true" ]]; then
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}"
-            artifact_suffix=""
+            release_tag="${prefix}"
             base_no_prefix="$release_tag"
+            artifact_suffix="-${prefix}-${now}-${short}"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             base_no_prefix="${GITHUB_REF#refs/tags/}"
             echo "Tag detected: $base_no_prefix"
-            artifact_suffix=""
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}-${base_no_prefix}"
+            artifact_suffix="-${base_no_prefix}"
+            release_tag="${prefix}-${base_no_prefix}"
           else
-            now=$(date -u +%y%m%d)
-            short=$(git rev-parse --short=6 $GITHUB_SHA)
             base_no_prefix="$now-$short"
             artifact_suffix="-${base_no_prefix}"
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}-${base_no_prefix}"
+            release_tag="${prefix}-${base_no_prefix}"
           fi
           echo "release_base=$base_no_prefix" >> $GITHUB_OUTPUT
           echo "artifact_suffix=$artifact_suffix" >> $GITHUB_OUTPUT
@@ -269,21 +270,22 @@ jobs:
       - name: Prepare release metadata
         id: vars
         run: |
+          now=$(date -u +%y%m%d)
+          short=$(git rev-parse --short=6 $GITHUB_SHA)
+          prefix="${{ inputs.release_prefix || 'picoclaw_fui' }}"
           if [[ "${{ inputs.use_fixed_tag }}" == "true" ]]; then
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}"
-            artifact_suffix=""
+            release_tag="${prefix}"
             base_no_prefix="$release_tag"
+            artifact_suffix="-${prefix}-${now}-${short}"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             base_no_prefix="${GITHUB_REF#refs/tags/}"
             echo "Tag detected: $base_no_prefix"
-            artifact_suffix=""
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}-${base_no_prefix}"
+            artifact_suffix="-${base_no_prefix}"
+            release_tag="${prefix}-${base_no_prefix}"
           else
-            now=$(date -u +%y%m%d)
-            short=$(git rev-parse --short=6 $GITHUB_SHA)
             base_no_prefix="$now-$short"
             artifact_suffix="-${base_no_prefix}"
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}-${base_no_prefix}"
+            release_tag="${prefix}-${base_no_prefix}"
           fi
           echo "release_base=$base_no_prefix" >> $GITHUB_OUTPUT
           echo "RELEASE_BASE=$base_no_prefix" >> $GITHUB_ENV
@@ -401,21 +403,22 @@ jobs:
         id: vars
         shell: powershell
         run: |
+          $now = Get-Date -Format 'yyMMdd'
+          $short = git rev-parse --short=6 $env:GITHUB_SHA
+          $prefix = "${{ inputs.release_prefix || 'picoclaw_fui' }}"
           if ("${{ inputs.use_fixed_tag }}" -eq "true") {
-            $release_tag = "${{ inputs.release_prefix || 'picoclaw_fui' }}"
-            $artifact_suffix = ""
+            $release_tag = $prefix
             $base_no_prefix = $release_tag
+            $artifact_suffix = "-${prefix}-${now}-${short}"
           } elseif ($env:GITHUB_REF -match '^refs/tags/v') {
             $base_no_prefix = $env:GITHUB_REF -replace '^refs/tags/', ''
             Write-Output "Tag detected: $base_no_prefix"
-            $artifact_suffix = ""
-            $release_tag = "${{ inputs.release_prefix || 'picoclaw_fui' }}-$base_no_prefix"
-          } else {
-            $date = Get-Date -Format 'yyMMdd'
-            $short = git rev-parse --short=6 $env:GITHUB_SHA
-            $base_no_prefix = "$date-$short"
             $artifact_suffix = "-$base_no_prefix"
-            $release_tag = "${{ inputs.release_prefix || 'picoclaw_fui' }}-$base_no_prefix"
+            $release_tag = "${prefix}-$base_no_prefix"
+          } else {
+            $base_no_prefix = "${now}-${short}"
+            $artifact_suffix = "-$base_no_prefix"
+            $release_tag = "${prefix}-$base_no_prefix"
           }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "release_base=$base_no_prefix"
           Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_BASE=$base_no_prefix"
@@ -585,21 +588,22 @@ jobs:
       - name: Prepare release metadata
         id: vars
         run: |
+          now=$(date -u +%y%m%d)
+          short=$(git rev-parse --short=6 $GITHUB_SHA)
+          prefix="${{ inputs.release_prefix || 'picoclaw_fui' }}"
           if [[ "${{ inputs.use_fixed_tag }}" == "true" ]]; then
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}"
-            artifact_suffix=""
+            release_tag="${prefix}"
             base_no_prefix="$release_tag"
+            artifact_suffix="-${prefix}-${now}-${short}"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             base_no_prefix="${GITHUB_REF#refs/tags/}"
             echo "Tag detected: $base_no_prefix"
-            artifact_suffix=""
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}-${base_no_prefix}"
+            artifact_suffix="-${base_no_prefix}"
+            release_tag="${prefix}-${base_no_prefix}"
           else
-            now=$(date -u +%y%m%d)
-            short=$(git rev-parse --short=6 $GITHUB_SHA)
             base_no_prefix="$now-$short"
             artifact_suffix="-${base_no_prefix}"
-            release_tag="${{ inputs.release_prefix || 'picoclaw_fui' }}-${base_no_prefix}"
+            release_tag="${prefix}-${base_no_prefix}"
           fi
           echo "release_base=$base_no_prefix" >> $GITHUB_OUTPUT
           echo "RELEASE_BASE=$base_no_prefix" >> $GITHUB_ENV
