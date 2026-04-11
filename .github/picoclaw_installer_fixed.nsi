@@ -5,6 +5,10 @@ Var IconPath
   !define RELEASE_BASE "unknown"
 !endif
 
+!ifndef DISPLAY_VERSION
+  !define DISPLAY_VERSION "${RELEASE_BASE}"
+!endif
+
 !ifndef CONTENTS_DIR
   !define CONTENTS_DIR "installer_stage"
 !endif
@@ -86,7 +90,7 @@ Section "Install"
   WriteRegStr HKLM "${REGKEY_UNINSTALL}" "DisplayName" "${APP_NAME}"
   WriteRegStr HKLM "${REGKEY_UNINSTALL}" "UninstallString" "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "${REGKEY_UNINSTALL}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${REGKEY_UNINSTALL}" "DisplayVersion" "${RELEASE_BASE}"
+  WriteRegStr HKLM "${REGKEY_UNINSTALL}" "DisplayVersion" "${DISPLAY_VERSION}"
   WriteRegStr HKLM "${REGKEY_UNINSTALL}" "Publisher" "PicoClaw"
 SectionEnd
 

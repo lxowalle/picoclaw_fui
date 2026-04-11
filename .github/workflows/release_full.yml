@@ -421,6 +421,14 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_BASE=$base_no_prefix"
           Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_TAG=$release_tag"
           Add-Content -Path $env:GITHUB_ENV -Value "ARTIFACT_SUFFIX=$artifact_suffix"
+          # DISPLAY_VERSION: pubspec version + build-type qualifier for installer registry
+          $pubspecVer = (Select-String -Path 'pubspec.yaml' -Pattern '^version:' | Select-Object -First 1).Line -replace 'version:\s*', '' -replace '\+.*', ''
+          if ($base_no_prefix -match '^v?[0-9]') {
+            $displayVersion = $pubspecVer
+          } else {
+            $displayVersion = "${pubspecVer}-${base_no_prefix}"
+          }
+          Add-Content -Path $env:GITHUB_ENV -Value "DISPLAY_VERSION=$displayVersion"
 
       - name: Zip Release
         shell: powershell
@@ -524,7 +532,7 @@ jobs:
           Write-Output "Using makensis: $nsisPath"
           $contentsDir = $env:INSTALLER_STAGE
           if (-not $contentsDir) { $contentsDir = Join-Path $PWD 'installer_stage' }
-          & $nsisPath /DRELEASE_BASE="${env:RELEASE_BASE}" /DCONTENTS_DIR="$contentsDir" /DLAUNCHER="picoclaw_flutter_ui.exe" /DOUTPUT_DIR="${env:GITHUB_WORKSPACE}" /DOUTPUT_NAME="$installerName" ".github/picoclaw_installer_fixed.nsi"
+          & $nsisPath /DRELEASE_BASE="${env:RELEASE_BASE}" /DDISPLAY_VERSION="${env:DISPLAY_VERSION}" /DCONTENTS_DIR="$contentsDir" /DLAUNCHER="picoclaw_flutter_ui.exe" /DOUTPUT_DIR="${env:GITHUB_WORKSPACE}" /DOUTPUT_NAME="$installerName" ".github/picoclaw_installer_fixed.nsi"
           if (-not (Test-Path $installerName)) {
             Write-Error "Installer build failed: $installerName"
             exit 1
@@ -597,13 +605,24 @@ jobs:
           echo "RELEASE_BASE=$base_no_prefix" >> $GITHUB_ENV
           echo "RELEASE_TAG=$release_tag" >> $GITHUB_ENV
           echo "ARTIFACT_SUFFIX=$artifact_suffix" >> $GITHUB_ENV
+          # DISPLAY_VERSION: pubspec version + build-type qualifier for deb/packaging
+          # Debian version requires digit-start; ~ means "earlier than" (pre-release)
+          # Sanitize: replace _ (invalid in deb versions) with .
+          pubspec_ver="$(grep '^version:' pubspec.yaml | head -1 | sed 's/version: //;s/+.*//')"
+          if [[ "$base_no_prefix" =~ ^v?[0-9] ]]; then
+            display_version="$pubspec_ver"
+          else
+            qualifier="${base_no_prefix//_/.}"
+            display_version="${pubspec_ver}~${qualifier}"
+          fi
+          echo "DISPLAY_VERSION=$display_version" >> $GITHUB_ENV
 
       - name: Package Linux as .deb
         run: |
           set -e
           PKG_NAME=picoclaw_fui
           SUFFIX=${ARTIFACT_SUFFIX}
-          DEB_VERSION="${RELEASE_BASE#v}"
+          DEB_VERSION="${DISPLAY_VERSION}"
           DEST=${PKG_NAME}${SUFFIX}-linux-x86_64.deb
           PKGROOT=$PWD/pkg_root
           rm -rf "$PKGROOT" "$DEST"
