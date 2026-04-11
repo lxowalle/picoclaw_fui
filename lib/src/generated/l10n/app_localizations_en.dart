@@ -234,4 +234,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String shareFailed(Object error) {
     return 'Failed to open share dialog: $error';
   }
+
+  @override
+  String get exportLogs => 'Export Logs';
+
+  @override
+  String logEventsCount(int count) {
+    return '$count EVENTS';
+  }
 }

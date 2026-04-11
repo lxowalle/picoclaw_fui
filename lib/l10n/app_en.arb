@@ -90,5 +90,12 @@
     "placeholders": {"name": {}}
   },
   "shareFailed": "Failed to open share dialog: {error}",
-  "@shareFailed": {"placeholders": {"error": {}}}
+  "@shareFailed": {"placeholders": {"error": {}}},
+  "exportLogs": "Export Logs",
+  "logEventsCount": "{count} EVENTS",
+  "@logEventsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
 }

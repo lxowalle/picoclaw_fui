@@ -184,7 +184,10 @@ class _ConfigPageState extends State<ConfigPage> {
           children: [
             Row(
               children: [
-                Text(l10n.settings, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  l10n.settings,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const Spacer(),
                 IconButton(
                   tooltip: 'GitHub',
@@ -216,9 +219,9 @@ class _ConfigPageState extends State<ConfigPage> {
 
             Text(
               l10n.address,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+              ),
             ),
             const SizedBox(height: 8),
 
@@ -236,9 +239,9 @@ class _ConfigPageState extends State<ConfigPage> {
 
             Text(
               l10n.port,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+              ),
             ),
             const SizedBox(height: 8),
 
@@ -384,9 +387,9 @@ class _ConfigPageState extends State<ConfigPage> {
 
             Text(
               l10n.arguments,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+              ),
             ),
             const SizedBox(height: 8),
 
@@ -406,9 +409,9 @@ class _ConfigPageState extends State<ConfigPage> {
               const SizedBox(height: 16),
               Text(
                 l10n.workspaceDirectory,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.white60),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+                ),
               ),
               const SizedBox(height: 8),
               Container(
@@ -584,6 +587,7 @@ class _FocusableTextFieldState extends State<FocusableTextField> {
           decoration: InputDecoration(
             labelText: widget.label,
             hintText: widget.hint,
+            hintStyle: TextStyle(color: colorScheme.onSurface.withAlpha(153)),
             floatingLabelBehavior: FloatingLabelBehavior.never,
             filled: true,
             fillColor: _isFocused

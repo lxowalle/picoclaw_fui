@@ -226,4 +226,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String shareFailed(Object error) {
     return '打开分享对话框失败：$error';
   }
+
+  @override
+  String get exportLogs => '导出日志';
+
+  @override
+  String logEventsCount(int count) {
+    return '$count 条日志';
+  }
 }

@@ -174,16 +174,16 @@ class _LogPageState extends State<LogPage> {
           ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Export logs',
-            icon: const Icon(Icons.download),
+          TextButton.icon(
             onPressed: _exportLogs,
+            icon: const Icon(Icons.download, size: 18),
+            label: Text(l10n.exportLogs),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
               child: Text(
-                '${logs.length} EVENTS',
+                l10n.logEventsCount(logs.length),
                 style: GoogleFonts.firaCode(
                   fontSize: 10,
                   color: colorScheme.onSurface.withAlpha(

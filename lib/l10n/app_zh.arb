@@ -87,5 +87,12 @@
     "placeholders": {"name": {}}
   },
   "shareFailed": "打开分享对话框失败：{error}",
-  "@shareFailed": {"placeholders": {"error": {}}}
+  "@shareFailed": {"placeholders": {"error": {}}},
+  "exportLogs": "导出日志",
+  "logEventsCount": "{count} 条日志",
+  "@logEventsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
 }

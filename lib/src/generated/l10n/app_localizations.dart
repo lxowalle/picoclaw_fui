@@ -511,6 +511,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to open share dialog: {error}'**
   String shareFailed(Object error);
+
+  /// No description provided for @exportLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Logs'**
+  String get exportLogs;
+
+  /// No description provided for @logEventsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} EVENTS'**
+  String logEventsCount(int count);
 }
 
 class _AppLocalizationsDelegate
