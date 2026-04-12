@@ -26,7 +26,6 @@ class PicoClawService : Service() {
         private const val WEB_BINARY_NAME = "libpicoclaw-web.so"
         private const val GATEWAY_PORT = 18790
         private const val WEB_PORT = 18800
-        const val WORKSPACE_PATH = "/storage/emulated/0/Download/picoclaw"
         // 本地 Pico Channel 认证 token（仅用于 loopback 通信）
         const val PICO_TOKEN = "picoclaw-android-local"
 
@@ -60,6 +59,36 @@ class PicoClawService : Service() {
                 action = ACTION_STOP
             }
             context.startService(intent)
+        }
+
+        /**
+         * 返回 workspace 目录路径。
+         * Android 11+ 使用 MANAGE_EXTERNAL_STORAGE 权限写入 Downloads；
+         * 权限未授予时回退到应用专属外部目录（无需权限）。
+         */
+        fun getWorkspacePath(context: Context): String {
+            val downloadsDir = File(
+                android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_DOWNLOADS
+                ),
+                "picoclaw"
+            )
+            // Android 11+ 需要 MANAGE_EXTERNAL_STORAGE；低版本 requestLegacyExternalStorage 已可写
+            val canWrite = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                android.os.Environment.isExternalStorageManager()
+            } else {
+                true
+            }
+            return if (canWrite) {
+                downloadsDir.mkdirs()
+                downloadsDir.absolutePath
+            } else {
+                // 权限未授予，回退到应用专属目录，避免崩溃
+                val fallback = context.getExternalFilesDir(null)?.resolve("picoclaw")
+                    ?: File(context.filesDir, "picoclaw")
+                fallback.mkdirs()
+                fallback.absolutePath
+            }
         }
     }
 
@@ -575,7 +604,7 @@ class PicoClawService : Service() {
         val internalHome = File(filesDir, "picoclaw")
         internalHome.mkdirs()
 
-        val workspace = File(WORKSPACE_PATH)
+        val workspace = File(getWorkspacePath(this))
         workspace.mkdirs()
 
         val tmpDir = File(cacheDir, "tmp")

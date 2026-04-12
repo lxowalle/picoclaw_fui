@@ -1,9 +1,13 @@
 package com.sipeed.picoclaw
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -183,7 +187,36 @@ class PicoClawMethodChannel(
                     result.success(configFile.absolutePath)
                 }
                 "getHomePath" -> {
-                    result.success(PicoClawService.WORKSPACE_PATH)
+                    result.success(PicoClawService.getWorkspacePath(context))
+                }
+                "isStorageManagerGranted" -> {
+                    val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        Environment.isExternalStorageManager()
+                    } else {
+                        true
+                    }
+                    result.success(granted)
+                }
+                "requestStorageManager" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        try {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                Uri.parse("package:${context.packageName}")
+                            )
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            // 部分设备不支持精确跳转，回退到通用页
+                            val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                            result.success(true)
+                        }
+                    } else {
+                        result.success(true) // 低版本无需此权限
+                    }
                 }
                 "getPicoToken" -> {
                     result.success(PicoClawService.PICO_TOKEN)
