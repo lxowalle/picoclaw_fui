@@ -175,9 +175,15 @@ class _LogPageState extends State<LogPage> {
         ),
         actions: [
           TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: colorScheme.onSurface,
+            ),
             onPressed: _exportLogs,
-            icon: const Icon(Icons.download, size: 18),
-            label: Text(l10n.exportLogs),
+            icon: Icon(Icons.download, size: 18, color: colorScheme.onSurface),
+            label: Text(
+              l10n.exportLogs,
+              style: TextStyle(color: colorScheme.onSurface),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
