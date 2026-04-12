@@ -174,7 +174,7 @@ class _ConfigPageState extends State<ConfigPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final service = context.watch<ServiceManager>();
+    // Use scoped Selectors below to avoid whole-page rebuilds when ServiceManager changes.
 
     return FocusTraversalGroup(
       child: SingleChildScrollView(
@@ -207,13 +207,15 @@ class _ConfigPageState extends State<ConfigPage> {
             ),
             const SizedBox(height: 16),
 
-            // Public mode switch with focus - using button style for TV remote support
-            PublicModeToggle(
-              focusNode: _publicModeFocusNode,
-              isPublicMode: service.publicMode,
-              onToggle: _togglePublicModeFromFocus,
-              onArrowDown: () => _hostFocusNode.requestFocus(),
-              onArrowUp: () => _githubFocusNode.requestFocus(),
+            Selector<ServiceManager, bool>(
+              selector: (_, s) => s.publicMode,
+              builder: (_, isPublicMode, _) => PublicModeToggle(
+                focusNode: _publicModeFocusNode,
+                isPublicMode: isPublicMode,
+                onToggle: _togglePublicModeFromFocus,
+                onArrowDown: () => _hostFocusNode.requestFocus(),
+                onArrowUp: () => _githubFocusNode.requestFocus(),
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -225,15 +227,18 @@ class _ConfigPageState extends State<ConfigPage> {
             ),
             const SizedBox(height: 8),
 
-            // Host text field
-            FocusableTextField(
-              controller: _hostController,
-              focusNode: _hostFocusNode,
-              label: l10n.address,
-              enabled: !service.publicMode,
-              nextFocusNode: _portFocusNode,
-              prevFocusNode: _publicModeFocusNode,
-              onSubmitted: _saveConfig,
+            // Host text field - only depends on `publicMode`
+            Selector<ServiceManager, bool>(
+              selector: (_, s) => s.publicMode,
+              builder: (_, isPublicMode, _) => FocusableTextField(
+                controller: _hostController,
+                focusNode: _hostFocusNode,
+                label: l10n.address,
+                enabled: !isPublicMode,
+                nextFocusNode: _portFocusNode,
+                prevFocusNode: _publicModeFocusNode,
+                onSubmitted: _saveConfig,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -319,9 +324,10 @@ class _ConfigPageState extends State<ConfigPage> {
                         const SizedBox(height: 8),
                         Builder(
                           builder: (ctx) {
-                            final messenger = ScaffoldMessenger.of(context);
-                            final local = AppLocalizations.of(context)!;
+                            final messenger = ScaffoldMessenger.of(ctx);
+                            final local = AppLocalizations.of(ctx)!;
                             final cs = Theme.of(ctx).colorScheme;
+                            final service = ctx.read<ServiceManager>();
                             return FocusableButton(
                               focusNode: _checkFocusNode,
                               onPressed: () async {
@@ -427,25 +433,36 @@ class _ConfigPageState extends State<ConfigPage> {
                     color: Theme.of(context).colorScheme.outline.withAlpha(60),
                   ),
                 ),
-                child: Text(
-                  service.workspacePath,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                child: Selector<ServiceManager, String>(
+                  selector: (_, s) => s.workspacePath,
+                  builder: (_, path, _) => Text(
+                    path,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                 ),
               ),
             ],
             const SizedBox(height: 24),
 
-            if (service.isDeviceFeedbackEnabled)
-              DeviceFeedbackToggle(
-                focusNode: _firebaseFocusNode,
-                isAllowed: _firebaseAllowed,
-                statusMessage: service.lastDeviceFeedbackSyncMessage,
-                onToggle: () => _toggleFirebase(context),
-                onArrowDown: () => _themeFocusNodes.isNotEmpty
-                    ? _themeFocusNodes.first.requestFocus()
-                    : _firebaseFocusNode.requestFocus(),
-                onArrowUp: () => _argsFocusNode.requestFocus(),
-              ),
+            Selector<ServiceManager, bool>(
+              selector: (_, s) => s.isDeviceFeedbackEnabled,
+              builder: (_, enabled, _) {
+                if (!enabled) return const SizedBox.shrink();
+                return Selector<ServiceManager, String?>(
+                  selector: (_, s) => s.lastDeviceFeedbackSyncMessage,
+                  builder: (_, msg, _) => DeviceFeedbackToggle(
+                    focusNode: _firebaseFocusNode,
+                    isAllowed: _firebaseAllowed,
+                    statusMessage: msg,
+                    onToggle: () => _toggleFirebase(context),
+                    onArrowDown: () => _themeFocusNodes.isNotEmpty
+                        ? _themeFocusNodes.first.requestFocus()
+                        : _firebaseFocusNode.requestFocus(),
+                    onArrowUp: () => _argsFocusNode.requestFocus(),
+                  ),
+                );
+              },
+            ),
 
             const SizedBox(height: 32),
             const Divider(),
@@ -455,42 +472,10 @@ class _ConfigPageState extends State<ConfigPage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            FocusTraversalGroup(
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: AppThemeMode.values.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final mode = entry.value;
-                  final isSelected = service.currentThemeMode == mode;
-                  final theme = AppTheme.getTheme(mode);
-                  final focusNode = _themeFocusNodes[index];
-
-                  return ThemeButton(
-                    focusNode: focusNode,
-                    mode: mode,
-                    theme: theme,
-                    isSelected: isSelected,
-                    onSelect: () => service.setTheme(mode),
-                    onArrowRight: () {
-                      if (index < _themeFocusNodes.length - 1) {
-                        _themeFocusNodes[index + 1].requestFocus();
-                      } else {
-                        _themeFocusNodes[0].requestFocus();
-                      }
-                    },
-                    onArrowLeft: () {
-                      if (index > 0) {
-                        _themeFocusNodes[index - 1].requestFocus();
-                      } else {
-                        _themeFocusNodes[_themeFocusNodes.length - 1]
-                            .requestFocus();
-                      }
-                    },
-                    onArrowUp: () => _firebaseFocusNode.requestFocus(),
-                  );
-                }).toList(),
-              ),
+            ThemeModeSelector(
+              themeFocusNodes: _themeFocusNodes,
+              firebaseFocusNode: _firebaseFocusNode,
+              argsFocusNode: _argsFocusNode,
             ),
             const SizedBox(height: 32),
           ],
@@ -1042,6 +1027,62 @@ class DeviceFeedbackToggle extends StatefulWidget {
 
   @override
   State<DeviceFeedbackToggle> createState() => _DeviceFeedbackToggleState();
+}
+
+// ThemeModeSelector: isolates theme buttons so only this subtree rebuilds
+class ThemeModeSelector extends StatelessWidget {
+  final List<FocusNode> themeFocusNodes;
+  final FocusNode firebaseFocusNode;
+  final FocusNode argsFocusNode;
+
+  const ThemeModeSelector({
+    super.key,
+    required this.themeFocusNodes,
+    required this.firebaseFocusNode,
+    required this.argsFocusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final current = context.select<ServiceManager, AppThemeMode>((s) => s.currentThemeMode);
+
+    return FocusTraversalGroup(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: AppThemeMode.values.asMap().entries.map((entry) {
+          final index = entry.key;
+          final mode = entry.value;
+          final isSelected = current == mode;
+          final theme = AppTheme.getTheme(mode);
+          final focusNode = themeFocusNodes[index];
+
+          return ThemeButton(
+            focusNode: focusNode,
+            mode: mode,
+            theme: theme,
+            isSelected: isSelected,
+            onSelect: () => context.read<ServiceManager>().setTheme(mode),
+            onArrowRight: () {
+              if (index < themeFocusNodes.length - 1) {
+                themeFocusNodes[index + 1].requestFocus();
+              } else {
+                themeFocusNodes[0].requestFocus();
+              }
+            },
+            onArrowLeft: () {
+              if (index > 0) {
+                themeFocusNodes[index - 1].requestFocus();
+              } else {
+                themeFocusNodes[themeFocusNodes.length - 1].requestFocus();
+              }
+            },
+            onArrowUp: () => firebaseFocusNode.requestFocus(),
+          );
+        }).toList(),
+      ),
+    );
+  }
 }
 
 class _DeviceFeedbackToggleState extends State<DeviceFeedbackToggle> {
