@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "Modifications non enregistrées",
+  "unsavedChangesHint": "Vous avez des modifications non enregistrées. Voulez-vous les abandonner ?",
+  "cancel": "Annuler",
+  "discard": "Abandonner",
+  "saved": "Enregistré"
 }

@@ -246,4 +246,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count EREIGNISSE';
   }
+
+  @override
+  String get unsavedChanges => 'Ungespeicherte Änderungen';
+
+  @override
+  String get unsavedChangesHint =>
+      'Sie haben ungespeicherte Änderungen. Möchten Sie diese verwerfen?';
+
+  @override
+  String get cancel => 'Abbrechen';
+
+  @override
+  String get discard => 'Verwerfen';
+
+  @override
+  String get saved => 'Gespeichert';
 }

@@ -234,4 +234,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count 条日志';
   }
+
+  @override
+  String get unsavedChanges => '未保存的更改';
+
+  @override
+  String get unsavedChangesHint => '您有未保存的更改，确定要放弃吗？';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get discard => '放弃';
+
+  @override
+  String get saved => '已保存';
 }

@@ -237,4 +237,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count 이벤트';
   }
+
+  @override
+  String get unsavedChanges => '저장되지 않은 변경 사항';
+
+  @override
+  String get unsavedChangesHint => '저장되지 않은 변경 사항이 있습니다. 취소하시겠습니까?';
+
+  @override
+  String get cancel => '취소';
+
+  @override
+  String get discard => '취소';
+
+  @override
+  String get saved => '저장됨';
 }

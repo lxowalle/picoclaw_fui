@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "Perubahan belum disimpan",
+  "unsavedChangesHint": "Anda memiliki perubahan yang belum disimpan. Apakah Anda ingin membuangnya?",
+  "cancel": "Batal",
+  "discard": "Buang",
+  "saved": "Disimpan"
 }

@@ -245,4 +245,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count СОБЫТИЙ';
   }
+
+  @override
+  String get unsavedChanges => 'Несохраненные изменения';
+
+  @override
+  String get unsavedChangesHint =>
+      'У вас есть несохраненные изменения. Вы хотите их отменить?';
+
+  @override
+  String get cancel => 'Отмена';
+
+  @override
+  String get discard => 'Отменить';
+
+  @override
+  String get saved => 'Сохранено';
 }

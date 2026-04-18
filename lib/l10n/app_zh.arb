@@ -94,5 +94,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "未保存的更改",
+  "unsavedChangesHint": "您有未保存的更改，确定要放弃吗？",
+  "cancel": "取消",
+  "discard": "放弃",
+  "saved": "已保存"
 }

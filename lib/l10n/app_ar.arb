@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "تغييرات غير محفوظة",
+  "unsavedChangesHint": "لديك تغييرات غير محفوظة. هل تريد التخلص منها؟",
+  "cancel": "إلغاء",
+  "discard": "تجاهل",
+  "saved": "تم الحفظ"
 }

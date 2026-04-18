@@ -247,4 +247,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count EVENTOS';
   }
+
+  @override
+  String get unsavedChanges => 'Alterações não guardadas';
+
+  @override
+  String get unsavedChangesHint =>
+      'Tem alterações não guardadas. Deseja descartá-las?';
+
+  @override
+  String get cancel => 'Cancelar';
+
+  @override
+  String get discard => 'Descartar';
+
+  @override
+  String get saved => 'Guardado';
 }

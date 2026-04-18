@@ -240,4 +240,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count أحداث';
   }
+
+  @override
+  String get unsavedChanges => 'تغييرات غير محفوظة';
+
+  @override
+  String get unsavedChangesHint =>
+      'لديك تغييرات غير محفوظة. هل تريد التخلص منها؟';
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String get discard => 'تجاهل';
+
+  @override
+  String get saved => 'تم الحفظ';
 }

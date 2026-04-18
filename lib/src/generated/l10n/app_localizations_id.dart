@@ -244,4 +244,20 @@ class AppLocalizationsId extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count PERISTIWA';
   }
+
+  @override
+  String get unsavedChanges => 'Perubahan belum disimpan';
+
+  @override
+  String get unsavedChangesHint =>
+      'Anda memiliki perubahan yang belum disimpan. Apakah Anda ingin membuangnya?';
+
+  @override
+  String get cancel => 'Batal';
+
+  @override
+  String get discard => 'Buang';
+
+  @override
+  String get saved => 'Disimpan';
 }

@@ -236,4 +236,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count イベント';
   }
+
+  @override
+  String get unsavedChanges => '未保存の変更';
+
+  @override
+  String get unsavedChangesHint => '未保存の変更があります。破棄しますか？';
+
+  @override
+  String get cancel => 'キャンセル';
+
+  @override
+  String get discard => '破棄';
+
+  @override
+  String get saved => '保存しました';
 }

@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "Alterações não guardadas",
+  "unsavedChangesHint": "Tem alterações não guardadas. Deseja descartá-las?",
+  "cancel": "Cancelar",
+  "discard": "Descartar",
+  "saved": "Guardado"
 }

@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "未保存の変更",
+  "unsavedChangesHint": "未保存の変更があります。破棄しますか？",
+  "cancel": "キャンセル",
+  "discard": "破棄",
+  "saved": "保存しました"
 }

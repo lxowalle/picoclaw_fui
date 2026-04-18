@@ -242,4 +242,20 @@ class AppLocalizationsHi extends AppLocalizations {
   String logEventsCount(int count) {
     return '$count इवेंट्स';
   }
+
+  @override
+  String get unsavedChanges => 'असहेजे गए परिवर्तन';
+
+  @override
+  String get unsavedChangesHint =>
+      'आपके पास असहेजे गए परिवर्तन हैं। क्या आप उन्हें छोड़ना चाहते हैं?';
+
+  @override
+  String get cancel => 'रद्द करें';
+
+  @override
+  String get discard => 'छोड़ें';
+
+  @override
+  String get saved => 'सहेजे गए';
 }

@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "Ungespeicherte Änderungen",
+  "unsavedChangesHint": "Sie haben ungespeicherte Änderungen. Möchten Sie diese verwerfen?",
+  "cancel": "Abbrechen",
+  "discard": "Verwerfen",
+  "saved": "Gespeichert"
 }

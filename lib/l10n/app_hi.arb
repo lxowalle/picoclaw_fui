@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "असहेजे गए परिवर्तन",
+  "unsavedChangesHint": "आपके पास असहेजे गए परिवर्तन हैं। क्या आप उन्हें छोड़ना चाहते हैं?",
+  "cancel": "रद्द करें",
+  "discard": "छोड़ें",
+  "saved": "सहेजे गए"
 }

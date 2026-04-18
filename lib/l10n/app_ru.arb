@@ -89,5 +89,10 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "unsavedChanges": "Несохраненные изменения",
+  "unsavedChangesHint": "У вас есть несохраненные изменения. Вы хотите их отменить?",
+  "cancel": "Отмена",
+  "discard": "Отменить",
+  "saved": "Сохранено"
 }
