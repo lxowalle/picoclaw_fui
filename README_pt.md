@@ -2,7 +2,7 @@
 
 Uma interface de usuário moderna e multiplataforma para gerenciar o serviço `PicoClaw`. Projetada para clareza, acessibilidade, alto contraste e visualização amigável para TV/controle remoto.
 
-![Imagem de visualização](docs\screenshots\main.png)
+![Imagem de visualização](docs/screenshots\main.png)
 ## 📥 Download e introdução
 
 Obtenha a versão mais recente em [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest):

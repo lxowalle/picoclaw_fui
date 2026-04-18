@@ -4,7 +4,7 @@ A modern cross-platform UI client for managing the `PicoClaw` service. Designed 
 
 [English](README.md) | [简体中文](README_zh.md) | [Español](README_es.md) | [Français](README_fr.md) | [Русский](README_ru.md) | [العربية](README_ar.md) | [Deutsch](README_de.md) | [Português](README_pt.md) | [日本語](README_ja.md) | [한국어](README_ko.md) | [Bahasa Indonesia](README_id.md) | [हिन्दी](README_hi.md)
 
-![preview picture](docs\screenshots\main.png)
+![preview picture](docs/screenshots/main.png)
 ## 📥 Download & Get Started
 
 Get the latest release from [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest):

@@ -2,7 +2,7 @@
 
 `PicoClaw` सेवा को प्रबंधित करने के लिए एक आधुनिक क्रॉस-प्लेटफ़ॉर्म UI क्लाइंट। स्पष्टता, पहुंच, उच्च कंट्रास्ट और TV/रिमोट-अनुकूल देखने के लिए डिज़ाइन किया गया।
 
-![पूर्वावलोकन छवि](docs\screenshots\main.png)
+![पूर्वावलोकन छवि](docs/screenshots\main.png)
 ## 📥 डाउनलोड और शुरू करें
 
 [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest) से नवीनतम संस्करण प्राप्त करें:

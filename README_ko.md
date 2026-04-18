@@ -2,7 +2,7 @@
 
 `PicoClaw` 서비스를 관리하기 위한 최신 크로스 플랫폼 UI 클라이언트. 명확성, 접근성, 높은 대비, TV/리모컨에 친숙한 보기를 위해 설계되었습니다.
 
-![미리보기 이미지](docs\screenshots\main.png)
+![미리보기 이미지](docs/screenshots\main.png)
 ## 📥 다운로드 및 시작
 
 [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest)에서 최신 버전을 받으세요:

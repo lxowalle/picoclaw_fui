@@ -2,7 +2,7 @@
 
 Antarmuka pengguna modern lintas platform untuk mengelola layanan `PicoClaw`. Dirancang untuk kejelasan, aksesibilitas, kontras tinggi, dan tampilan ramah TV/remote.
 
-![Gambar pratinjau](docs\screenshots\main.png)
+![Gambar pratinjau](docs/screenshots\main.png)
 ## 📥 Unduh dan mulai
 
 Dapatkan rilis terbaru dari [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest):
