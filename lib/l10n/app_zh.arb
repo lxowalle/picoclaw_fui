@@ -99,5 +99,7 @@
   "unsavedChangesHint": "您有未保存的更改，确定要放弃吗？",
   "cancel": "取消",
   "discard": "放弃",
-  "saved": "已保存"
+  "saved": "已保存",
+  "language": "语言",
+  "selectLanguage": "选择语言"
 }

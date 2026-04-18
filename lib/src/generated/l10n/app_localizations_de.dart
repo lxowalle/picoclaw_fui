@@ -262,4 +262,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get saved => 'Gespeichert';
+
+  @override
+  String get language => 'Sprache';
+
+  @override
+  String get selectLanguage => 'Sprache auswählen';
 }

@@ -102,5 +102,7 @@
   "unsavedChangesHint": "You have unsaved changes. Do you want to discard them?",
   "cancel": "Cancel",
   "discard": "Discard",
-  "saved": "Saved"
+  "saved": "Saved",
+  "language": "Language",
+  "selectLanguage": "Select Language"
 }

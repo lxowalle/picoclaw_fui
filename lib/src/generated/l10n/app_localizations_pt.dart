@@ -263,4 +263,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get saved => 'Guardado';
+
+  @override
+  String get language => 'Idioma';
+
+  @override
+  String get selectLanguage => 'Selecionar idioma';
 }

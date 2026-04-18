@@ -249,4 +249,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get saved => '已保存';
+
+  @override
+  String get language => '语言';
+
+  @override
+  String get selectLanguage => '选择语言';
 }

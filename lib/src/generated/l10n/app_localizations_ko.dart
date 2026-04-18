@@ -252,4 +252,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get saved => '저장됨';
+
+  @override
+  String get language => '언어';
+
+  @override
+  String get selectLanguage => '언어 선택';
 }

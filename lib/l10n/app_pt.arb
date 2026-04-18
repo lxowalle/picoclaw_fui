@@ -94,5 +94,7 @@
   "unsavedChangesHint": "Tem alterações não guardadas. Deseja descartá-las?",
   "cancel": "Cancelar",
   "discard": "Descartar",
-  "saved": "Guardado"
+  "saved": "Guardado",
+  "language": "Idioma",
+  "selectLanguage": "Selecionar idioma"
 }

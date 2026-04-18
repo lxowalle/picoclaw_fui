@@ -260,4 +260,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get saved => 'Disimpan';
+
+  @override
+  String get language => 'Bahasa';
+
+  @override
+  String get selectLanguage => 'Pilih bahasa';
 }

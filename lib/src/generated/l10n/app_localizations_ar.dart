@@ -256,4 +256,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get saved => 'تم الحفظ';
+
+  @override
+  String get language => 'اللغة';
+
+  @override
+  String get selectLanguage => 'اختر اللغة';
 }

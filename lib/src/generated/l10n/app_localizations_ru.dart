@@ -261,4 +261,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get saved => 'Сохранено';
+
+  @override
+  String get language => 'Язык';
+
+  @override
+  String get selectLanguage => 'Выбрать язык';
 }

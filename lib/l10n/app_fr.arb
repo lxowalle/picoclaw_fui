@@ -94,5 +94,7 @@
   "unsavedChangesHint": "Vous avez des modifications non enregistrées. Voulez-vous les abandonner ?",
   "cancel": "Annuler",
   "discard": "Abandonner",
-  "saved": "Enregistré"
+  "saved": "Enregistré",
+  "language": "Langue",
+  "selectLanguage": "Sélectionner la langue"
 }

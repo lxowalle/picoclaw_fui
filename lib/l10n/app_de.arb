@@ -94,5 +94,7 @@
   "unsavedChangesHint": "Sie haben ungespeicherte Änderungen. Möchten Sie diese verwerfen?",
   "cancel": "Abbrechen",
   "discard": "Verwerfen",
-  "saved": "Gespeichert"
+  "saved": "Gespeichert",
+  "language": "Sprache",
+  "selectLanguage": "Sprache auswählen"
 }

@@ -258,4 +258,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get saved => 'सहेजे गए';
+
+  @override
+  String get language => 'भाषा';
+
+  @override
+  String get selectLanguage => 'भाषा चुनें';
 }

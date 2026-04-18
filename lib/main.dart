@@ -72,6 +72,7 @@ class MainApp extends StatelessWidget {
       theme: AppTheme.getTheme(service.currentThemeMode),
       darkTheme: AppTheme.getTheme(service.currentThemeMode),
       themeMode: ThemeMode.dark,
+      locale: service.currentLocale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

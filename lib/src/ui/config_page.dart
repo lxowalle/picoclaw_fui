@@ -62,6 +62,24 @@ class _ConfigPageState extends State<ConfigPage> {
     _argsController.addListener(_markDirty);
   }
 
+  String _getLanguageName(String code) {
+    return switch (code) {
+      'ar' => 'العربية',
+      'de' => 'Deutsch',
+      'en' => 'English',
+      'es' => 'Español',
+      'fr' => 'Français',
+      'hi' => 'हिन्दी',
+      'id' => 'Bahasa Indonesia',
+      'ja' => '日本語',
+      'ko' => '한국어',
+      'pt' => 'Português',
+      'ru' => 'Русский',
+      'zh' => '中文',
+      _ => code,
+    };
+  }
+
   void _markDirty() {
     if (!_isDirty &&
         (_hostController.text != _originalHost ||
@@ -554,7 +572,59 @@ class _ConfigPageState extends State<ConfigPage> {
                 },
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              Text(
+                l10n.language,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Selector<ServiceManager, Locale>(
+                selector: (_, s) => s.currentLocale,
+                builder: (_, currentLocale, _) {
+                  final service = context.read<ServiceManager>();
+                  return FocusableButton(
+                    focusNode: _saveFocusNode,
+                    onPressed: () {},
+                    prevFocusNode: _argsFocusNode,
+                    nextFocusNode: _themeFocusNodes.isNotEmpty
+                        ? _themeFocusNodes.first
+                        : _saveFocusNode,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outline.withAlpha(60),
+                        ),
+                      ),
+                    ),
+                    child: PopupMenuButton<Locale>(
+                      initialValue: currentLocale,
+                      tooltip: l10n.selectLanguage,
+                      onSelected: (locale) => service.setLocale(locale),
+                      itemBuilder: (ctx) => AppLocalizations.supportedLocales
+                          .map((locale) => PopupMenuItem(
+                                value: locale,
+                                child: Text(_getLanguageName(locale.languageCode)),
+                              ))
+                          .toList(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_getLanguageName(currentLocale.languageCode)),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_drop_down, size: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
               Text(

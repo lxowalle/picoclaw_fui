@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
@@ -105,6 +106,8 @@ class ServiceManager extends ChangeNotifier {
 
   AppThemeMode _currentThemeMode = AppThemeMode.carbon;
   AppThemeMode get currentThemeMode => _currentThemeMode;
+  Locale _currentLocale = const Locale('en');
+  Locale get currentLocale => _currentLocale;
   DeviceFeedbackProvider get deviceFeedbackProvider => _deviceFeedbackProvider;
   bool get isDeviceFeedbackEnabled => switch (_deviceFeedbackProvider) {
     DeviceFeedbackProvider.none => false,
@@ -176,6 +179,9 @@ class ServiceManager extends ChangeNotifier {
 
     final themeIndex = prefs.getInt('theme_mode') ?? 0;
     _currentThemeMode = AppThemeMode.values[themeIndex];
+
+    final localeCode = prefs.getString('locale') ?? 'en';
+    _currentLocale = Locale(localeCode);
 
     if (Platform.isAndroid) {
       _port = 18800;
@@ -285,6 +291,13 @@ class ServiceManager extends ChangeNotifier {
     _currentThemeMode = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('theme_mode', mode.index);
+    notifyListeners();
+  }
+
+  Future<void> setLocale(Locale locale) async {
+    _currentLocale = locale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('locale', locale.languageCode);
     notifyListeners();
   }
 

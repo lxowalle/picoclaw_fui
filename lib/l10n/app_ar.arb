@@ -94,5 +94,7 @@
   "unsavedChangesHint": "لديك تغييرات غير محفوظة. هل تريد التخلص منها؟",
   "cancel": "إلغاء",
   "discard": "تجاهل",
-  "saved": "تم الحفظ"
+  "saved": "تم الحفظ",
+  "language": "اللغة",
+  "selectLanguage": "اختر اللغة"
 }

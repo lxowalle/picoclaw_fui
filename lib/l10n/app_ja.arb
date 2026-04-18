@@ -94,5 +94,7 @@
   "unsavedChangesHint": "未保存の変更があります。破棄しますか？",
   "cancel": "キャンセル",
   "discard": "破棄",
-  "saved": "保存しました"
+  "saved": "保存しました",
+  "language": "言語",
+  "selectLanguage": "言語を選択"
 }
