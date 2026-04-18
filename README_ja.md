@@ -2,7 +2,7 @@
 
 `PicoClaw`サービスを管理するための最新のクロスプラットフォームUIクライアント。明朗性、アクセシビリティ、高コントラスト、TV/リモートフレンドリーな表示のために設計されています。
 
-![プレビュー画像](docs/screenshots\main.png)
+![プレビュー画像](docs/screenshots/main.png)
 ## 📥 ダウンロードと開始
 
 最新バージョンを[Releases](https://github.com/sipeed/picoclaw_fui/releases/latest)から入手：

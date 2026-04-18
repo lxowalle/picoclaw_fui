@@ -2,7 +2,7 @@
 
 Eine moderne plattformübergreifende Benutzeroberfläche zur Verwaltung des `PicoClaw`-Dienstes. Entwickelt für Klarheit, Barrierefreiheit, hohen Kontrast und TV-freundliche Anzeige.
 
-![Vorschaubild](docs/screenshots\main.png)
+![Vorschaubild](docs/screenshots/main.png)
 ## 📥 Herunterladen und loslegen
 
 Laden Sie die neueste Version von [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest) herunter:

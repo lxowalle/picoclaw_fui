@@ -2,7 +2,7 @@
 
 现代化跨平台UI客户端，用于管理`PicoClaw`服务。设计注重清晰度、无障碍访问、高对比度，以及适合电视/遥控器操作。
 
-![预览图](docs/screenshots\main.png)
+![预览图](docs/screenshots/main.png)
 ## 📥 下载与开始
 
 从 [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest) 获取最新版本：

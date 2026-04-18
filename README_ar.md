@@ -2,7 +2,7 @@
 
 واجهة مستخدم عصرية ومتعددة المنصات لإدارة خدمة `PicoClaw`. مصممة للوضوح وإمكانية الوصول والتباين العالي ومشاهدة صديقة للتلفزيون/الريموت.
 
-![صورة المعاينة](docs/screenshots\main.png)
+![صورة المعاينة](docs/screenshots/main.png)
 ## 📥 التحميل والبدء
 
 احصل على أحدث إصدار من [Releases](https://github.com/sipeed/picoclaw_fui/releases/latest):
