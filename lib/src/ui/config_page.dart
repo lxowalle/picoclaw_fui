@@ -22,7 +22,7 @@ class ConfigPage extends StatefulWidget {
   State<ConfigPage> createState() => ConfigPageState();
 }
 
-class ConfigPageState extends State<ConfigPage> {
+class ConfigPageState extends State<ConfigPage> with WidgetsBindingObserver {
   static ConfigPageState? _current;
   static ConfigPageState? get current => _current;
   final _hostController = TextEditingController();
@@ -54,6 +54,7 @@ class ConfigPageState extends State<ConfigPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _current = this;
     widget.onSaveFnReady?.call(_saveConfig);
 
@@ -135,6 +136,7 @@ class ConfigPageState extends State<ConfigPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _current = null;
     _hostController.dispose();
     _portController.dispose();
@@ -155,6 +157,16 @@ class ConfigPageState extends State<ConfigPage> {
     }
 
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && Platform.isAndroid) {
+      // App resumed from settings (e.g., storage permission granted)
+      // Refresh workspace path to get the correct path after permission change
+      context.read<ServiceManager>().refreshWorkspacePath();
+    }
   }
 
   Future<void> _saveConfig() async {

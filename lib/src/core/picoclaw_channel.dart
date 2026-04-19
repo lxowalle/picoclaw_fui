@@ -135,4 +135,16 @@ class PicoClawChannel {
       return {'success': false, 'message': 'Exception: $e'};
     }
   }
+
+  /// 检查存储权限是否已授予（Android 11+）
+  static Future<bool> isStorageManagerGranted() async {
+    final result = await _channel.invokeMethod<bool>('isStorageManagerGranted');
+    return result ?? false;
+  }
+
+  /// 请求存储管理权限（Android 11+）
+  static Future<bool> requestStorageManager() async {
+    final result = await _channel.invokeMethod<bool>('requestStorageManager');
+    return result ?? false;
+  }
 }

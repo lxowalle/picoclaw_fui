@@ -231,6 +231,16 @@ class ServiceManager extends ChangeNotifier {
     return ok;
   }
 
+  /// 刷新 workspace path（用于权限变化后重新获取）
+  Future<void> refreshWorkspacePath() async {
+    if (Platform.isAndroid) {
+      try {
+        _workspacePath = await _adapter.getWorkspacePath();
+        notifyListeners();
+      } catch (_) {}
+    }
+  }
+
   Future<void> _autoUploadDeviceFeedbackIfNeeded() async {
     try {
       final isAllowed = await isDeviceFeedbackAllowed();
