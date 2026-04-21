@@ -121,8 +121,6 @@ android {
             // 不要 strip libpicoclaw*.so（它们不是标准动态库）
             keepDebugSymbols += "**/libpicoclaw.so"
             keepDebugSymbols += "**/libpicoclaw-web.so"
-            // 不压缩，直接从 APK 中映射使用
-            useLegacyPackaging = true
         }
     }
 }
