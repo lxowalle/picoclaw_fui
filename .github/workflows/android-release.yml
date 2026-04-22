@@ -99,6 +99,12 @@ jobs:
         run: |
           echo "PICOCLAW_FLUTTER_BUILD_ARGS=--dart-define=PICOCLAW_ANALYTICS_PROVIDER=umeng --dart-define=PICOCLAW_UMENG_APP_KEY=${{ secrets.PICOCLAW_UMENG_APP_KEY }} --dart-define=PICOCLAW_UMENG_CHANNEL=${{ secrets.PICOCLAW_UMENG_CHANNEL }}" >> $GITHUB_ENV
 
+      - name: Fetch/install Android core
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dart run tools/fetch_core_local.dart --platform android --arch=arm64  
+
       - name: Build Android App Bundle (AAB)
         run: flutter build appbundle --release --target-platform android-arm,android-arm64 $PICOCLAW_FLUTTER_BUILD_ARGS
 

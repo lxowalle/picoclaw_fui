@@ -151,18 +151,106 @@ Future<void> main(List<String> args) async {
   }
 
   // Android uses JNI libraries packaged in the APK (`android/app/src/main/jniLibs`).
-  // If the target is Android, we skip downloading desktop/native core binaries.
+  // If the target is Android, download the Android core to the specified jniLibs directory.
   if (targetPlatformArg.isNotEmpty &&
       targetPlatformArg.toLowerCase() == 'android') {
+    // Default jniLibs path: android/app/src/main/jniLibs/arm64-v8a
+    final androidJniDir = destOverride.isNotEmpty
+        ? destOverride
+        : 'android${Platform.pathSeparator}app${Platform.pathSeparator}src${Platform.pathSeparator}main${Platform.pathSeparator}jniLibs${Platform.pathSeparator}arm64-v8a';
+
     stdout.writeln(
-      'Target is Android; skipping core binary download because JNI libs are used for Android builds.',
+      'Target is Android; will download core to JNI directory: $androidJniDir',
     );
-    // Still write a version.txt in out-dir if desired (optional). Exit success.
-    if (!dryRun) {
-      await File(
-        '${outDir.endsWith(Platform.pathSeparator) ? outDir : outDir + Platform.pathSeparator}version.txt',
-      ).writeAsString('android-jni-supplied', flush: true);
+
+    // Android uses the same tag as other platforms (default: latest)
+    final androidTag = tag;
+
+    if (dryRun) {
+      stdout.writeln('Dry run - planned actions:');
+      stdout.writeln(' - Download Android core from tag: $androidTag');
+      stdout.writeln(' - Extract to: $androidJniDir');
+      stdout.writeln('Dry run - exiting');
+      exit(0);
     }
+
+    // Fetch the release JSON to get the asset URL
+    List<Map<String, dynamic>> assets;
+    try {
+      final data = await fetchReleaseJson(repo, androidTag, token);
+      assets = (data['assets'] as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      stderr.writeln('Failed to fetch release JSON: $e');
+      exit(2);
+    }
+
+    // Select best Android asset: prefer arch-specific, fall back to universal
+    // arch can be 'arm64' or 'arm' (armeabi-v7a)
+    final androidArch = arch.toLowerCase();
+    final androidPrefArches = <String>[];
+    if (androidArch.contains('arm64') || androidArch.contains('aarch64')) {
+      androidPrefArches.addAll(['arm64-v8a', 'aarch64', 'arm64']);
+    } else if (androidArch.contains('arm')) {
+      androidPrefArches.addAll(['armeabi-v7a', 'armv7a', 'arm']);
+    }
+
+    final chosen = selectBestAsset(
+      assets,
+      'android',
+      arch,
+      ['.zip'],
+      requirePlatformMatch: true,
+    );
+
+    if (chosen == null) {
+      stderr.writeln('No matching Android asset found in release "$androidTag".');
+      exit(3);
+    }
+
+    final androidAssetName = chosen['name'] as String;
+    final androidAssetUrl = chosen['url'] as String;
+
+    stdout.writeln('Selected asset: $androidAssetName');
+
+    // Remove existing jniDir before download to ensure a clean extraction.
+    final jniDir = Directory(androidJniDir);
+    if (await jniDir.exists()) {
+      stdout.writeln('Removing existing JNI directory: ${jniDir.path}');
+      try {
+        await jniDir.delete(recursive: true);
+      } catch (e) {
+        stderr.writeln('Warning: failed to remove ${jniDir.path}: $e');
+      }
+    }
+    await jniDir.create(recursive: true);
+
+    // Download and extract the Android core
+    await downloadAndExtract(
+      androidAssetUrl,
+      androidAssetName,
+      token,
+      extractTo: androidJniDir,
+    );
+
+    // Report what was extracted
+    var extractedCount = 0;
+    await for (final entity in jniDir.list(recursive: true, followLinks: false)) {
+      if (entity is File) {
+        final len = await entity.length();
+        stdout.writeln('INSTALLED: ${entity.path} ($len bytes)');
+        extractedCount++;
+      }
+    }
+    stdout.writeln(
+      'Android core installed to $androidJniDir ($extractedCount files)',
+    );
+
+    // Write version.txt in the jniDir
+    await File(
+      '${androidJniDir.endsWith(Platform.pathSeparator) ? androidJniDir : androidJniDir + Platform.pathSeparator}version.txt',
+    ).writeAsString('$androidAssetName ($androidTag)', flush: true);
+
+    stdout.writeln('Done. Android core installed successfully.');
     exit(0);
   }
 
