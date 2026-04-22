@@ -185,15 +185,6 @@ Future<void> main(List<String> args) async {
     }
 
     // Select best Android asset: prefer arch-specific, fall back to universal
-    // arch can be 'arm64' or 'arm' (armeabi-v7a)
-    final androidArch = arch.toLowerCase();
-    final androidPrefArches = <String>[];
-    if (androidArch.contains('arm64') || androidArch.contains('aarch64')) {
-      androidPrefArches.addAll(['arm64-v8a', 'aarch64', 'arm64']);
-    } else if (androidArch.contains('arm')) {
-      androidPrefArches.addAll(['armeabi-v7a', 'armv7a', 'arm']);
-    }
-
     final chosen = selectBestAsset(
       assets,
       'android',
@@ -231,6 +222,38 @@ Future<void> main(List<String> args) async {
       token,
       extractTo: androidJniDir,
     );
+
+    // If extraction created a nested arch directory (e.g., arm64-v8a/ inside jniDir),
+    // flatten it by moving .so files up one level.
+    await for (final entity in jniDir.list(recursive: false, followLinks: false)) {
+      if (entity is Directory) {
+        final subDir = entity;
+        final subName = subDir.uri.pathSegments.last;
+        // Check if this subdirectory contains .so files (typical arch layout)
+        var hasSoFiles = false;
+        await for (final subEntity in subDir.list(recursive: false, followLinks: false)) {
+          if (subEntity is File && subEntity.uri.pathSegments.last.endsWith('.so')) {
+            hasSoFiles = true;
+            break;
+          }
+        }
+        if (hasSoFiles) {
+          stdout.writeln('Flattening nested arch directory: $subName');
+          await for (final subEntity in subDir.list(recursive: false, followLinks: false)) {
+            if (subEntity is File) {
+              final fileName = subEntity.uri.pathSegments.last;
+              final destPath = '${androidJniDir.endsWith(Platform.pathSeparator) ? androidJniDir : androidJniDir + Platform.pathSeparator}$fileName';
+              await subEntity.rename(destPath);
+              stdout.writeln('Moved: $fileName to $destPath');
+            }
+          }
+          // Remove the now-empty subdirectory
+          try {
+            await subDir.delete(recursive: true);
+          } catch (_) {}
+        }
+      }
+    }
 
     // Report what was extracted
     var extractedCount = 0;
