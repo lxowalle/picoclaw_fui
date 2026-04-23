@@ -13,6 +13,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.sipeed.picoclaw.service.PicoClawService
 import com.sipeed.picoclaw.util.HealthChecker
+import java.io.File
 import java.util.concurrent.Executor
 
 /**
