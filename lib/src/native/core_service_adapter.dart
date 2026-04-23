@@ -8,6 +8,7 @@ abstract class CoreServiceAdapter {
   Future<bool> setAutoStart(bool enabled);
   Future<bool> getAutoStart();
   Future<String> getCoreVersion();
+  void setConfiguredPath(String? path);
   String? getLastErrorCode();
 
   /// Install a log handler callback which the adapter should call with

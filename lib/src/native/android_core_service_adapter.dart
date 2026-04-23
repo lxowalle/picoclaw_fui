@@ -81,6 +81,9 @@ class AndroidCoreServiceAdapter implements CoreServiceAdapter {
   }
 
   @override
+  void setConfiguredPath(String? path) {}
+
+  @override
   String? getLastErrorCode() => _lastErrorCode;
 
   @override

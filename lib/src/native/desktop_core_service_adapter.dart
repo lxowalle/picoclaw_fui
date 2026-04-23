@@ -16,7 +16,7 @@ class DesktopCoreServiceAdapter implements CoreServiceAdapter {
   final int port;
   Process? _proc;
   String _lastLog = '';
-  final String? configuredPath;
+  String? configuredPath;
   void Function(String)? _logHandler;
 
   DesktopCoreServiceAdapter({
@@ -411,6 +411,11 @@ class DesktopCoreServiceAdapter implements CoreServiceAdapter {
     } catch (_) {
       return 'unknown';
     }
+  }
+
+  @override
+  void setConfiguredPath(String? path) {
+    configuredPath = path;
   }
 
   @override
