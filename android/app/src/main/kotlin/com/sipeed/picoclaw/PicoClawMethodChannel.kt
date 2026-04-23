@@ -13,7 +13,6 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.sipeed.picoclaw.service.PicoClawService
 import com.sipeed.picoclaw.util.HealthChecker
-import java.io.File
 import java.util.concurrent.Executor
 
 /**
@@ -69,27 +68,12 @@ class PicoClawMethodChannel(
     private val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_NAME)
     private val healthChecker = HealthChecker()
 
-    private fun readCoreVersion(): String {
-        return try {
-            val binaryFile = File(context.applicationInfo.nativeLibraryDir, "libpicoclaw.so")
-            if (!binaryFile.exists()) {
-                "unknown"
-            } else {
-                val process = ProcessBuilder(binaryFile.absolutePath, "version")
-                    .directory(context.filesDir)
-                    .redirectErrorStream(true)
-                    .start()
-                val output = process.inputStream.bufferedReader().readText().trim()
-                val exitCode = process.waitFor()
-                if (exitCode == 0 && output.isNotBlank()) {
-                    output.lineSequence().first().trim()
-                } else {
-                    "unknown"
-                }
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "getCoreVersion failed: ${e.message}")
-            "unknown"
+    private fun getMainExecutor(): Executor {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            context.mainExecutor
+        } else {
+            val handler = Handler(Looper.getMainLooper())
+            Executor { r -> handler.post(r) }
         }
     }
 
@@ -136,12 +120,7 @@ class PicoClawMethodChannel(
                 }
                 "checkHealth" -> {
                     Thread {
-                        val mainExecutor: Executor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                            context.mainExecutor
-                        } else {
-                            val handler = Handler(Looper.getMainLooper())
-                            Executor { r -> handler.post(r) }
-                        }
+                        val mainExecutor = getMainExecutor()
 
                         try {
                             val status = healthChecker.check()
@@ -207,7 +186,20 @@ class PicoClawMethodChannel(
                     }
                 }
                 "getCoreVersion" -> {
-                    result.success(readCoreVersion())
+                    Thread {
+                        val mainExecutor = getMainExecutor()
+                        try {
+                            val version = PicoClawService.readCoreVersion(context)
+                            mainExecutor.execute {
+                                result.success(version)
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "getCoreVersion failed: ${e.message}", e)
+                            mainExecutor.execute {
+                                result.success("unknown")
+                            }
+                        }
+                    }.start()
                 }
                 "getConfigPath" -> {
                     val configFile = File(context.filesDir, "picoclaw/config.json")

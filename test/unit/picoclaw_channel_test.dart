@@ -30,4 +30,21 @@ void main() {
 
     expect(await PicoClawChannel.getCoreVersion(), 'unknown');
   });
+
+  test('getCoreVersion maps blank or null native values to unknown', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'getCoreVersion') return '   ';
+          return null;
+        });
+
+    expect(await PicoClawChannel.getCoreVersion(), 'unknown');
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          return null;
+        });
+
+    expect(await PicoClawChannel.getCoreVersion(), 'unknown');
+  });
 }
