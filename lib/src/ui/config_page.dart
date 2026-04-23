@@ -322,7 +322,7 @@ class ConfigPageState extends State<ConfigPage> with WidgetsBindingObserver {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.aboutTitle),
+        title: Text(l10n.about),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Column(
