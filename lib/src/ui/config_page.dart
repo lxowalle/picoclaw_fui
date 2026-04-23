@@ -12,7 +12,14 @@ import 'package:remixicon/remixicon.dart';
 const String _githubRepoUrl = 'https://github.com/sipeed/picoclaw_fui';
 const String _picoclawOfficialUrl = 'https://picoclaw.io';
 const String _sipeedOfficialUrl = 'https://sipeed.com';
-const String _aboutProjectName = 'PicoClaw Flutter UI';
+const String _aboutProjectName = 'PicoClaw';
+
+class AboutInfo {
+  const AboutInfo({required this.appVersion, required this.coreVersion});
+
+  final String appVersion;
+  final String coreVersion;
+}
 
 typedef ExternalUrlLauncher = Future<bool> Function(Uri uri);
 
@@ -26,12 +33,14 @@ class ConfigPage extends StatefulWidget {
   /// Called once with the save function, so MainShell can call it later.
   final void Function(Future<void> Function()? saveFn)? onSaveFnReady;
   final ExternalUrlLauncher externalUrlLauncher;
+  final Future<AboutInfo> Function()? aboutInfoLoader;
 
   const ConfigPage({
     super.key,
     this.onDirtyChanged,
     this.onSaveFnReady,
     this.externalUrlLauncher = _defaultExternalUrlLauncher,
+    this.aboutInfoLoader,
   });
 
   @override
@@ -274,8 +283,41 @@ class ConfigPageState extends State<ConfigPage> with WidgetsBindingObserver {
     return false;
   }
 
+  Future<AboutInfo> _loadAboutInfo(AppLocalizations l10n) async {
+    final unavailable = l10n.aboutVersionUnavailable;
+    return AboutInfo(appVersion: unavailable, coreVersion: unavailable);
+  }
+
+  Widget _buildAboutVersionRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 148,
+            child: Text(
+              label,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showAboutDialog() async {
     final l10n = AppLocalizations.of(context)!;
+    final aboutInfoFuture =
+        widget.aboutInfoLoader?.call() ?? _loadAboutInfo(l10n);
 
     await showDialog<void>(
       context: context,
@@ -295,6 +337,40 @@ class ConfigPageState extends State<ConfigPage> with WidgetsBindingObserver {
               ),
               const SizedBox(height: 12),
               Text(l10n.aboutDescription),
+              const SizedBox(height: 16),
+              FutureBuilder<AboutInfo>(
+                future: aboutInfoFuture,
+                builder: (ctx, snapshot) {
+                  if (!snapshot.hasData && !snapshot.hasError) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final info =
+                      snapshot.data ??
+                      AboutInfo(
+                        appVersion: l10n.aboutVersionUnavailable,
+                        coreVersion: l10n.aboutVersionUnavailable,
+                      );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAboutVersionRow(
+                        ctx,
+                        label: l10n.aboutAppVersionLabel,
+                        value: info.appVersion,
+                      ),
+                      _buildAboutVersionRow(
+                        ctx,
+                        label: l10n.aboutCoreVersionLabel,
+                        value: info.coreVersion,
+                      ),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 16),
               TextButton.icon(
                 autofocus: true,

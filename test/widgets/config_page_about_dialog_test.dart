@@ -16,6 +16,7 @@ void main() {
   Future<void> pumpConfigPage(
     WidgetTester tester, {
     ExternalUrlLauncher? launcher,
+    Future<AboutInfo> Function()? aboutInfoLoader,
   }) async {
     final service = ServiceManager();
 
@@ -28,6 +29,7 @@ void main() {
           home: Scaffold(
             body: ConfigPage(
               externalUrlLauncher: launcher ?? ((_) async => true),
+              aboutInfoLoader: aboutInfoLoader,
             ),
           ),
         ),
@@ -47,10 +49,10 @@ void main() {
     await tester.tap(find.text('About'));
     await tester.pumpAndSettle();
 
-    expect(find.text('About PicoClaw Flutter UI'), findsOneWidget);
+    expect(find.text('About'), findsWidgets);
     expect(
       find.text(
-        'A cross-platform Flutter client for managing the PicoClaw service.',
+        'PicoClaw is a cross-platform Flutter app for managing the PicoClaw service.',
       ),
       findsOneWidget,
     );
@@ -58,18 +60,28 @@ void main() {
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
-    expect(find.text('About PicoClaw Flutter UI'), findsNothing);
+    expect(find.text('PicoClaw'), findsNothing);
   });
 
-  testWidgets('shows project info and official links in the about dialog', (
+  testWidgets('shows PicoClaw branding and both version rows', (
     WidgetTester tester,
   ) async {
-    await pumpConfigPage(tester);
+    await pumpConfigPage(
+      tester,
+      aboutInfoLoader: () async =>
+          const AboutInfo(appVersion: '1.2.3', coreVersion: 'core-9.8.7'),
+    );
 
     await tester.tap(find.text('About'));
     await tester.pumpAndSettle();
 
-    expect(find.text('PicoClaw Flutter UI'), findsOneWidget);
+    expect(find.text('About'), findsWidgets);
+    expect(find.text('PicoClaw'), findsOneWidget);
+    expect(find.text('PicoClaw Flutter UI'), findsNothing);
+    expect(find.text('PicoClaw version'), findsOneWidget);
+    expect(find.text('1.2.3'), findsOneWidget);
+    expect(find.text('PicoClaw Core version'), findsOneWidget);
+    expect(find.text('core-9.8.7'), findsOneWidget);
     expect(find.text('PicoClaw Official'), findsOneWidget);
     expect(find.text('Sipeed Official'), findsOneWidget);
   });

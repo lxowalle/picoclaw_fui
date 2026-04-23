@@ -595,14 +595,32 @@ abstract class AppLocalizations {
   /// No description provided for @aboutTitle.
   ///
   /// In en, this message translates to:
-  /// **'About PicoClaw Flutter UI'**
+  /// **'About'**
   String get aboutTitle;
 
   /// No description provided for @aboutDescription.
   ///
   /// In en, this message translates to:
-  /// **'A cross-platform Flutter client for managing the PicoClaw service.'**
+  /// **'PicoClaw is a cross-platform Flutter app for managing the PicoClaw service.'**
   String get aboutDescription;
+
+  /// No description provided for @aboutAppVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PicoClaw version'**
+  String get aboutAppVersionLabel;
+
+  /// No description provided for @aboutCoreVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PicoClaw Core version'**
+  String get aboutCoreVersionLabel;
+
+  /// No description provided for @aboutVersionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get aboutVersionUnavailable;
 
   /// No description provided for @picoclawOfficial.
   ///

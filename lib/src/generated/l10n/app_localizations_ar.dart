@@ -274,6 +274,15 @@ class AppLocalizationsAr extends AppLocalizations {
       'عميل Flutter متعدد المنصات لإدارة خدمة PicoClaw.';
 
   @override
+  String get aboutAppVersionLabel => 'PicoClaw version';
+
+  @override
+  String get aboutCoreVersionLabel => 'PicoClaw Core version';
+
+  @override
+  String get aboutVersionUnavailable => 'Unavailable';
+
+  @override
   String get picoclawOfficial => 'موقع PicoClaw الرسمي';
 
   @override

@@ -279,6 +279,15 @@ class AppLocalizationsRu extends AppLocalizations {
       'Кроссплатформенный Flutter-клиент для управления сервисом PicoClaw.';
 
   @override
+  String get aboutAppVersionLabel => 'PicoClaw version';
+
+  @override
+  String get aboutCoreVersionLabel => 'PicoClaw Core version';
+
+  @override
+  String get aboutVersionUnavailable => 'Unavailable';
+
+  @override
   String get picoclawOfficial => 'Официальный сайт PicoClaw';
 
   @override

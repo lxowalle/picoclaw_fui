@@ -270,6 +270,15 @@ class AppLocalizationsKo extends AppLocalizations {
       'PicoClaw 서비스를 관리하기 위한 크로스 플랫폼 Flutter 클라이언트입니다.';
 
   @override
+  String get aboutAppVersionLabel => 'PicoClaw version';
+
+  @override
+  String get aboutCoreVersionLabel => 'PicoClaw Core version';
+
+  @override
+  String get aboutVersionUnavailable => 'Unavailable';
+
+  @override
   String get picoclawOfficial => 'PicoClaw 공식 사이트';
 
   @override

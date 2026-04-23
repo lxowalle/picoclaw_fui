@@ -269,6 +269,15 @@ class AppLocalizationsJa extends AppLocalizations {
       'PicoClaw サービスを管理するためのクロスプラットフォーム Flutter クライアントです。';
 
   @override
+  String get aboutAppVersionLabel => 'PicoClaw version';
+
+  @override
+  String get aboutCoreVersionLabel => 'PicoClaw Core version';
+
+  @override
+  String get aboutVersionUnavailable => 'Unavailable';
+
+  @override
   String get picoclawOfficial => 'PicoClaw 公式サイト';
 
   @override
