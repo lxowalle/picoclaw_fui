@@ -272,9 +272,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get about => 'Acerca de';
 
   @override
-  String get aboutTitle => 'Acerca de PicoClaw Flutter UI';
-
-  @override
   String get aboutDescription =>
       'Un cliente Flutter multiplataforma para gestionar el servicio PicoClaw.';
 

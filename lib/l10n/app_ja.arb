@@ -98,7 +98,6 @@
   "language": "言語",
   "selectLanguage": "言語を選択",
   "about": "概要",
-  "aboutTitle": "PicoClaw Flutter UI について",
   "aboutDescription": "PicoClaw サービスを管理するためのクロスプラットフォーム Flutter クライアントです。",
   "picoclawOfficial": "PicoClaw 公式サイト",
   "sipeedOfficial": "Sipeed 公式サイト",

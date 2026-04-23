@@ -260,9 +260,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get about => '关于';
 
   @override
-  String get aboutTitle => '关于';
-
-  @override
   String get aboutDescription => 'PicoClaw 是一个用于管理 PicoClaw 服务的跨平台 Flutter 应用。';
 
   @override

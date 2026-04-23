@@ -269,9 +269,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get about => 'About';
 
   @override
-  String get aboutTitle => 'About';
-
-  @override
   String get aboutDescription =>
       'PicoClaw is a cross-platform Flutter app for managing the PicoClaw service.';
 

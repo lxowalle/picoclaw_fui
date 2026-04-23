@@ -273,9 +273,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get about => 'Über';
 
   @override
-  String get aboutTitle => 'Über PicoClaw Flutter UI';
-
-  @override
   String get aboutDescription =>
       'Eine plattformübergreifende Flutter-Oberfläche zur Verwaltung des PicoClaw-Dienstes.';
 

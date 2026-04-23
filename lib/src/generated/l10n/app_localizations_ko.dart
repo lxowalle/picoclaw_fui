@@ -263,9 +263,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get about => '정보';
 
   @override
-  String get aboutTitle => 'PicoClaw Flutter UI 정보';
-
-  @override
   String get aboutDescription =>
       'PicoClaw 서비스를 관리하기 위한 크로스 플랫폼 Flutter 클라이언트입니다.';
 

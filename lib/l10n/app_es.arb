@@ -98,7 +98,6 @@
   "language": "Idioma",
   "selectLanguage": "Seleccionar idioma",
   "about": "Acerca de",
-  "aboutTitle": "Acerca de PicoClaw Flutter UI",
   "aboutDescription": "Un cliente Flutter multiplataforma para gestionar el servicio PicoClaw.",
   "picoclawOfficial": "Sitio oficial de PicoClaw",
   "sipeedOfficial": "Sitio oficial de Sipeed",

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:picoclaw_flutter_ui/src/core/service_manager.dart';
@@ -17,6 +19,7 @@ void main() {
     WidgetTester tester, {
     ExternalUrlLauncher? launcher,
     Future<AboutInfo> Function()? aboutInfoLoader,
+    bool settle = true,
   }) async {
     final service = ServiceManager();
 
@@ -36,7 +39,9 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    }
   }
 
   testWidgets('opens and closes the about dialog from settings', (
@@ -84,6 +89,36 @@ void main() {
     expect(find.text('core-9.8.7'), findsOneWidget);
     expect(find.text('PicoClaw Official'), findsOneWidget);
     expect(find.text('Sipeed Official'), findsOneWidget);
+  });
+
+  testWidgets('shows loading indicator while about info is still loading', (
+    WidgetTester tester,
+  ) async {
+    final aboutInfoCompleter = Completer<AboutInfo>();
+
+    await pumpConfigPage(
+      tester,
+      aboutInfoLoader: () => aboutInfoCompleter.future,
+      settle: false,
+    );
+
+    await tester.tap(find.text('About'));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('PicoClaw version'), findsNothing);
+    expect(find.text('PicoClaw Core version'), findsNothing);
+
+    aboutInfoCompleter.complete(
+      const AboutInfo(appVersion: '1.0.0', coreVersion: 'core-1.0.0'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('PicoClaw version'), findsOneWidget);
+    expect(find.text('1.0.0'), findsOneWidget);
+    expect(find.text('PicoClaw Core version'), findsOneWidget);
+    expect(find.text('core-1.0.0'), findsOneWidget);
   });
 
   testWidgets('launches both official links from the about dialog', (

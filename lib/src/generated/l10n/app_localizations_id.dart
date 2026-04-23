@@ -271,9 +271,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get about => 'Tentang';
 
   @override
-  String get aboutTitle => 'Tentang PicoClaw Flutter UI';
-
-  @override
   String get aboutDescription =>
       'Klien Flutter lintas platform untuk mengelola layanan PicoClaw.';
 

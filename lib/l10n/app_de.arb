@@ -98,7 +98,6 @@
   "language": "Sprache",
   "selectLanguage": "Sprache auswählen",
   "about": "Über",
-  "aboutTitle": "Über PicoClaw Flutter UI",
   "aboutDescription": "Eine plattformübergreifende Flutter-Oberfläche zur Verwaltung des PicoClaw-Dienstes.",
   "picoclawOfficial": "Offizielle PicoClaw-Website",
   "sipeedOfficial": "Offizielle Sipeed-Website",

@@ -267,9 +267,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get about => 'حول';
 
   @override
-  String get aboutTitle => 'حول PicoClaw Flutter UI';
-
-  @override
   String get aboutDescription =>
       'عميل Flutter متعدد المنصات لإدارة خدمة PicoClaw.';
 
