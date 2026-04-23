@@ -32,7 +32,12 @@ void main() {
           home: Scaffold(
             body: ConfigPage(
               externalUrlLauncher: launcher ?? ((_) async => true),
-              aboutInfoLoader: aboutInfoLoader,
+              aboutInfoLoader:
+                  aboutInfoLoader ??
+                  () async => const AboutInfo(
+                    appVersion: '1.0.0',
+                    coreVersion: 'core-1.0.0',
+                  ),
             ),
           ),
         ),
@@ -119,6 +124,23 @@ void main() {
     expect(find.text('1.0.0'), findsOneWidget);
     expect(find.text('PicoClaw Core version'), findsOneWidget);
     expect(find.text('core-1.0.0'), findsOneWidget);
+  });
+
+  testWidgets('shows localized fallback text when a version is unavailable', (
+    WidgetTester tester,
+  ) async {
+    await pumpConfigPage(
+      tester,
+      aboutInfoLoader: () async => const AboutInfo(
+        appVersion: '',
+        coreVersion: 'unknown',
+      ),
+    );
+
+    await tester.tap(find.text('About'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unavailable'), findsNWidgets(2));
   });
 
   testWidgets('launches both official links from the about dialog', (

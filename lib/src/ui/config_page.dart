@@ -283,9 +283,19 @@ class ConfigPageState extends State<ConfigPage> with WidgetsBindingObserver {
     return false;
   }
 
-  Future<AboutInfo> _loadAboutInfo(AppLocalizations l10n) async {
-    final unavailable = l10n.aboutVersionUnavailable;
-    return AboutInfo(appVersion: unavailable, coreVersion: unavailable);
+  Future<AboutInfo> _loadAboutInfo() async {
+    final service = context.read<ServiceManager>();
+    final appVersion = await service.getAppVersion();
+    final coreVersion = await service.getCoreVersion();
+    return AboutInfo(appVersion: appVersion, coreVersion: coreVersion);
+  }
+
+  String _normalizeAboutVersion(String value, AppLocalizations l10n) {
+    final normalized = value.trim();
+    if (normalized.isEmpty || normalized.toLowerCase() == 'unknown') {
+      return l10n.aboutVersionUnavailable;
+    }
+    return normalized;
   }
 
   Widget _buildAboutVersionRow(
@@ -316,8 +326,7 @@ class ConfigPageState extends State<ConfigPage> with WidgetsBindingObserver {
 
   Future<void> _showAboutDialog() async {
     final l10n = AppLocalizations.of(context)!;
-    final aboutInfoFuture =
-        widget.aboutInfoLoader?.call() ?? _loadAboutInfo(l10n);
+    final aboutInfoFuture = widget.aboutInfoLoader?.call() ?? _loadAboutInfo();
 
     await showDialog<void>(
       context: context,
@@ -360,12 +369,12 @@ class ConfigPageState extends State<ConfigPage> with WidgetsBindingObserver {
                       _buildAboutVersionRow(
                         ctx,
                         label: l10n.aboutAppVersionLabel,
-                        value: info.appVersion,
+                        value: _normalizeAboutVersion(info.appVersion, l10n),
                       ),
                       _buildAboutVersionRow(
                         ctx,
                         label: l10n.aboutCoreVersionLabel,
-                        value: info.coreVersion,
+                        value: _normalizeAboutVersion(info.coreVersion, l10n),
                       ),
                     ],
                   );
