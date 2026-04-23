@@ -73,8 +73,9 @@ Section "Install"
 
   CreateDirectory "$SMPROGRAMS\PicoClaw FUI"
 
-  ; choose icon at runtime: assets\icon.ico -> assets\app_icon.png -> fallback to exe
-  StrCpy $IconPath "$INSTDIR\assets\icon.ico"
+  ; choose icon at runtime:
+  ; icon.ico (at install root, same level as exe) -> assets app_icon.png -> fallback to exe
+  StrCpy $IconPath "$INSTDIR\icon.ico"
   IfFileExists "$IconPath" 0 +3
     Goto haveIcon
   StrCpy $IconPath "$INSTDIR\assets\app_icon.png"
