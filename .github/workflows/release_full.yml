@@ -699,6 +699,8 @@ jobs:
   publish:
     needs: [build-android, build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.set-vars.outputs.release_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -716,14 +718,17 @@ jobs:
           find downloaded_artifacts -type f -exec mv -t . {} + || true
 
       - name: Set release vars from build outputs
+        id: set-vars
         run: |
           echo "RELEASE_BASE=${{ needs.build-android.outputs.release_base }}" >> $GITHUB_ENV
           echo "ARTIFACT_SUFFIX=${{ needs.build-android.outputs.artifact_suffix }}" >> $GITHUB_ENV
           if [[ "${{ inputs.use_fixed_tag }}" == "true" ]]; then
-            echo "RELEASE_TAG=${{ needs.build-android.outputs.release_base }}" >> $GITHUB_ENV
+            RELEASE_TAG="${{ needs.build-android.outputs.release_base }}"
           else
-            echo "RELEASE_TAG=${{ inputs.release_prefix || 'picoclaw_fui' }}-${{ needs.build-android.outputs.release_base }}" >> $GITHUB_ENV
+            RELEASE_TAG="${{ inputs.release_prefix || 'picoclaw_fui' }}-${{ needs.build-android.outputs.release_base }}"
           fi
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
 
       - name: Publish Release and upload artifacts
         uses: ncipollo/release-action@v1
@@ -744,3 +749,10 @@ jobs:
             picoclaw_fui${{ env.ARTIFACT_SUFFIX }}-windows-x64-installer.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-tos:
+    needs: [publish]
+    uses: ./.github/workflows/upload-tos.yml
+    with:
+      tag: ${{ needs.publish.outputs.release_tag }}
+    secrets: inherit
