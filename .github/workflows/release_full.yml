@@ -144,7 +144,8 @@ jobs:
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             base_no_prefix="${GITHUB_REF#refs/tags/}"
             echo "Tag detected: $base_no_prefix"
-            artifact_suffix="-${base_no_prefix}"
+            # Keep tagged release assets on stable filenames without a version suffix.
+            artifact_suffix=""
             release_tag="${prefix}-${base_no_prefix}"
           else
             base_no_prefix="$now-$short"
@@ -280,7 +281,8 @@ jobs:
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             base_no_prefix="${GITHUB_REF#refs/tags/}"
             echo "Tag detected: $base_no_prefix"
-            artifact_suffix="-${base_no_prefix}"
+            # Keep tagged release assets on stable filenames without a version suffix.
+            artifact_suffix=""
             release_tag="${prefix}-${base_no_prefix}"
           else
             base_no_prefix="$now-$short"
@@ -413,7 +415,8 @@ jobs:
           } elseif ($env:GITHUB_REF -match '^refs/tags/v') {
             $base_no_prefix = $env:GITHUB_REF -replace '^refs/tags/', ''
             Write-Output "Tag detected: $base_no_prefix"
-            $artifact_suffix = "-$base_no_prefix"
+            # Keep tagged release assets on stable filenames without a version suffix.
+            $artifact_suffix = ""
             $release_tag = "${prefix}-$base_no_prefix"
           } else {
             $base_no_prefix = "${now}-${short}"
@@ -598,7 +601,8 @@ jobs:
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             base_no_prefix="${GITHUB_REF#refs/tags/}"
             echo "Tag detected: $base_no_prefix"
-            artifact_suffix="-${base_no_prefix}"
+            # Keep tagged release assets on stable filenames without a version suffix.
+            artifact_suffix=""
             release_tag="${prefix}-${base_no_prefix}"
           else
             base_no_prefix="$now-$short"
